@@ -1,0 +1,11 @@
+{
+  "appId": "com.govea.dicefall",
+  "appName": "DiceFall",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#080808"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

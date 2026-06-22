@@ -1,0 +1,618 @@
+/* Retro Black-and-White Design System */
+
+@font-face {
+    font-family: 'Dicier';
+    src: url('assets/fonts/Dicier-Flat-Dark.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Dicier-Round';
+    src: url('assets/fonts/Dicier-Round-Dark.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Dicier-Pixel';
+    src: url('assets/fonts/Dicier-Pixel.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+:root {
+    --bg-color: #080808;
+    --fg-color: #ffffff;
+    --border-color: #ffffff;
+    --accent-color: #888888;
+    --font-main: 'JetBrains Mono', monospace;
+    --font-heading: 'Silkscreen', sans-serif;
+    --font-dicier: 'Dicier', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* CRT Screen Effect Overlay */
+body::after {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    aspect-ratio: 16/9;
+    z-index: 1000;
+    background-size: 100% 4px, 6px 100%;
+    pointer-events: none;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    height: 100%;
+    max-height: 700px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 4px solid var(--border-color);
+    background-color: #0d0d0d;
+    padding: 20px;
+}
+
+/* Screen Transitions */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* Font Classes for Dicier Font */
+.dicier-icon, .dicier-large, .dicier-next {
+    font-family: var(--font-dicier);
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+}
+
+.dicier-large {
+    font-size: 64px;
+    letter-spacing: 10px;
+    display: inline-block;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.dicier-next {
+    font-size: 40px;
+    line-height: 1.1;
+    display: block;
+    text-align: center;
+    letter-spacing: 4px;
+}
+
+/* Logo & Menu Aesthetic */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.game-title {
+    font-family: var(--font-heading);
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    border-bottom: 6px double var(--border-color);
+    padding-bottom: 10px;
+}
+
+.subtitle {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    color: var(--accent-color);
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+}
+
+.menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.credits {
+    margin-top: 60px;
+    font-size: 11px;
+    color: var(--accent-color);
+    text-align: center;
+}
+
+.credits a {
+    color: var(--fg-color);
+    text-decoration: underline;
+}
+
+/* Retro Buttons */
+.btn-retro {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    border: 3px solid var(--border-color);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    outline: none;
+    text-align: center;
+    position: relative;
+    box-shadow: 4px 4px 0px var(--fg-color);
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+.btn-retro:hover {
+    background-color: var(--fg-color);
+    color: var(--bg-color);
+    box-shadow: 0px 0px 0px var(--fg-color);
+    transform: translate(4px, 4px);
+}
+
+.btn-retro:active {
+    transform: translate(6px, 6px);
+    box-shadow: -2px -2px 0px var(--fg-color);
+}
+
+.btn-secondary {
+    border-style: dashed;
+}
+
+.btn-danger {
+    border-color: #ff3333;
+    color: #ff3333;
+    box-shadow: 4px 4px 0px #ff3333;
+}
+.btn-danger:hover {
+    background-color: #ff3333;
+    color: var(--bg-color);
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #111;
+    border: 4px solid var(--border-color);
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: left;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.modal-title {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.instructions {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.instructions p {
+    margin-bottom: 12px;
+}
+
+.instructions ul {
+    margin-left: 20px;
+    margin-bottom: 12px;
+}
+
+.instructions kbd {
+    background-color: #333;
+    border: 1px solid #777;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--font-main);
+    font-size: 11px;
+}
+
+/* Game Interface Layout */
+.game-layout {
+    display: grid;
+    grid-template-columns: 160px 1fr 160px;
+    gap: 20px;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+    justify-content: space-between;
+    padding: 10px 0;
+}
+
+.panel {
+    border: 3px solid var(--border-color);
+    padding: 15px 10px;
+    background-color: #000;
+    text-align: center;
+}
+
+.panel h3 {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    color: var(--accent-color);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.next-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.next-piece-display {
+    min-height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #111;
+    border: 2px dashed #333;
+    width: 100%;
+    padding: 10px;
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+#board-canvas {
+    border: 4px double var(--border-color);
+    background-color: #050505;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+}
+
+/* Mobile Controls */
+.mobile-controls {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 15px;
+    gap: 5px;
+    width: 100%;
+}
+
+.control-row {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-control {
+    background-color: #111;
+    color: #fff;
+    border: 2px solid var(--border-color);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    width: 60px;
+    height: 50px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-control:active {
+    background-color: #fff;
+    color: #000;
+}
+
+#ctrl-drop {
+    width: 90px;
+    font-size: 12px;
+}
+
+/* Game Over Aesthetic */
+.game-over-title {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    animation: flashRed 1s infinite alternate;
+}
+
+.game-over-panel {
+    border: 4px double var(--border-color);
+    padding: 30px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    background-color: #000;
+    margin-bottom: 40px;
+}
+
+.game-over-panel p {
+    font-size: 12px;
+    color: var(--accent-color);
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-family: var(--font-heading);
+}
+
+.game-over-panel .stat-value.highlight {
+    font-size: 36px;
+    color: #fff;
+    border-bottom: 2px dashed #444;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.8; transform: scale(1); }
+}
+
+@keyframes flashRed {
+    0% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); color: #ffffff; }
+    100% { text-shadow: 0 0 15px rgba(255, 0, 0, 0.8); color: #ff3333; }
+}
+
+/* Media Queries for Responsive Layouts */
+@media (max-width: 768px) {
+    #game-container {
+        max-height: 100vh;
+        border: none;
+        padding: 10px;
+    }
+
+    .game-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+    }
+
+    .sidebar {
+        flex-direction: row;
+        height: auto;
+        padding: 0;
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .stats-sidebar .panel {
+        flex: 1;
+        padding: 5px;
+        margin: 0 2px;
+    }
+
+    .stats-sidebar h3 {
+        font-size: 8px;
+        margin-bottom: 2px;
+    }
+
+    .stat-value {
+        font-size: 14px;
+    }
+
+    .info-sidebar {
+        display: none; /* Hide preview & back button on mobile screen, or handle otherwise */
+    }
+
+    .board-container {
+        height: 50vh;
+    }
+
+    #board-canvas {
+        height: 100%;
+        width: auto;
+    }
+
+    .mobile-controls {
+        display: flex;
+    }
+
+    .game-title {
+        font-size: 36px;
+    }
+
+    .dicier-large {
+        font-size: 40px;
+    }
+}
+
+/* ---------- Splash da Govea Games (B&W Theme) ---------- */
+.splash {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    pointer-events: auto;
+    background: radial-gradient(110% 80% at 50% 38%, #0d0d0d, #000000 75%);
+    transition: opacity 0.45s ease;
+    overflow: hidden;
+}
+.splash.out {
+    opacity: 0;
+    pointer-events: none;
+}
+.splash-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    overflow: hidden;
+    padding: 24px 40px;
+}
+/* Govea Mark: Hexagon and G drawing animations */
+.splash .gv-hex {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: gv-draw 1s ease-out 0.15s forwards;
+}
+.splash .gv-g {
+    stroke-dasharray: 175;
+    stroke-dashoffset: 175;
+    animation: gv-draw 0.9s ease-out 0.75s forwards;
+}
+.splash .gv-spark {
+    transform-origin: 88px 39px;
+    transform: scale(0);
+    animation: gv-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) 1.55s forwards;
+}
+.splash .govea-mark {
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+    animation: gv-glow 2.4s ease-in-out 1.8s infinite;
+}
+.splash-word {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 38px;
+    letter-spacing: 14px;
+    text-indent: 14px;
+    color: #ffffff;
+    opacity: 0;
+    animation: gv-rise 0.7s ease-out 1.35s forwards, gv-settle 1s ease-out 1.35s forwards;
+}
+.splash-word span {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 11px;
+    text-indent: 11px;
+    color: #888888;
+    margin-top: 2px;
+}
+.splash-presents {
+    font-family: var(--font-main);
+    font-style: italic;
+    font-size: 14px;
+    color: #888888;
+    opacity: 0;
+    animation: gv-rise 0.6s ease-out 2.1s forwards;
+}
+/* Shine overlay sweep */
+.splash-shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.15) 50%, transparent 62%);
+    transform: translateX(-130%);
+    animation: gv-shine 0.9s ease-in-out 2.25s forwards;
+}
+.splash-foot {
+    position: absolute;
+    bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.splash-skip {
+    font-family: var(--font-main);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #888888;
+    opacity: 0;
+    animation: gv-rise 0.6s ease-out 2.6s forwards;
+}
+@keyframes gv-draw {
+    to { stroke-dashoffset: 0; }
+}
+@keyframes gv-pop {
+    to { transform: scale(1); }
+}
+@keyframes gv-glow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.25)); }
+    50% { filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.55)); }
+}
+@keyframes gv-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes gv-settle {
+    from { letter-spacing: 22px; text-indent: 22px; }
+}
+@keyframes gv-shine {
+    to { transform: translateX(130%); }
+}

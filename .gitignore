@@ -1,0 +1,7 @@
+node_modules/
+temp/
+.gradle/
+build/
+app/build/
+*.log
+.DS_Store

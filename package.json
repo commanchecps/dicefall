@@ -1,0 +1,19 @@
+{
+  "name": "dicefall",
+  "version": "1.0.0",
+  "description": "DiceFall — Domino Tetris Roguelike (Capacitor Mobile Build)",
+  "main": "www/index.html",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "cap:android": "cap sync android",
+    "android:apk": "cap sync android && cd android && ./gradlew assembleDebug",
+    "android:aab": "cap sync android && cd android && ./gradlew bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

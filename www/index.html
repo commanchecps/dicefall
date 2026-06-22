@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DiceFall - Domino Tetris Roguelike</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1.1">
+</head>
+<body>
+    <div id="game-container">
+        <!-- MENU SCREEN -->
+        <div id="menu-screen" class="screen active">
+            <div class="logo-container">
+                <span class="dicier-large">6_6</span>
+                <h1 class="game-title">DICEFALL</h1>
+                <span class="dicier-large">5_5</span>
+            </div>
+            <p class="subtitle">DOMINO TETRIS ROGUELIKE</p>
+            
+            <div class="menu-actions">
+                <button id="btn-start" class="btn-retro">INICIAR JOGO</button>
+                <button id="btn-how-to" class="btn-retro btn-secondary">COMO JOGAR</button>
+            </div>
+            
+            <div class="credits">
+                Layout e Peças usando a fonte <a href="https://speakthesky.itch.io/typeface-dicier" target="_blank" rel="noopener">Dicier</a> por Speak the Sky (CC BY 4.0).
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY MODAL / OVERLAY -->
+        <div id="how-to-modal" class="modal">
+            <div class="modal-content">
+                <h2 class="modal-title">COMO JOGAR</h2>
+                <div class="instructions">
+                    <p><strong>1. Peças e Valores:</strong> As peças do Tetris são formadas por pares de dominós. Cada quadrado tem um valor de dado de 1 a 6 (ou vazio/0).</p>
+                    <p><strong>2. Controles:</strong> 
+                        <ul>
+                            <li><kbd>←</kbd> / <kbd>→</kbd> : Mover para os lados.</li>
+                            <li><kbd>↑</kbd> : Rotacionar a peça.</li>
+                            <li><kbd>↓</kbd> : Descida suave.</li>
+                            <li><kbd>Espaço</kbd> : Queda instantânea.</li>
+                        </ul>
+                    </p>
+                    <p><strong>3. Pontuação:</strong> Quando completar uma linha horizontal, o jogo procura <strong>valores iguais adjacentes</strong> (lado a lado ou cima/baixo) que estejam tocando a linha completada. Esses pares piscam e somam pontos, e então a linha é limpa!</p>
+                </div>
+                <button id="btn-close-modal" class="btn-retro">ENTENDI</button>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="screen">
+            <div class="game-layout">
+                <!-- Left Sidebar: Stats -->
+                <div class="sidebar stats-sidebar">
+                    <div class="panel">
+                        <h3>PONTUAÇÃO</h3>
+                        <div id="val-score" class="stat-value">000000</div>
+                    </div>
+                    <div class="panel">
+                        <h3>LINHAS</h3>
+                        <div id="val-lines" class="stat-value">0</div>
+                    </div>
+                    <div class="panel">
+                        <h3>NÍVEL</h3>
+                        <div id="val-level" class="stat-value">1</div>
+                    </div>
+                </div>
+
+                <!-- Center: Board -->
+                <div class="board-container">
+                    <canvas id="board-canvas" width="300" height="600"></canvas>
+                </div>
+
+                <!-- Right Sidebar: Next piece & Actions -->
+                <div class="sidebar info-sidebar">
+                    <div class="panel next-panel">
+                        <h3>PRÓXIMA</h3>
+                        <div class="next-piece-display">
+                            <!-- We render next piece in an element styled with Dicier font -->
+                            <span id="next-piece-dominoes" class="dicier-next">1_2<br>3_4</span>
+                        </div>
+                    </div>
+                    <button id="btn-menu-back" class="btn-retro btn-danger">SAIR</button>
+                </div>
+            </div>
+
+            <!-- Mobile Controls -->
+            <div class="mobile-controls">
+                <div class="control-row">
+                    <button id="ctrl-rotate" class="btn-control">↑</button>
+                </div>
+                <div class="control-row">
+                    <button id="ctrl-left" class="btn-control">←</button>
+                    <button id="ctrl-drop" class="btn-control">DROP</button>
+                    <button id="ctrl-right" class="btn-control">→</button>
+                </div>
+                <div class="control-row">
+                    <button id="ctrl-down" class="btn-control">↓</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="game-over-screen" class="screen">
+            <h2 class="game-over-title">FIM DE JOGO</h2>
+            <div class="game-over-panel">
+                <p>Pontuação Final:</p>
+                <div id="final-score" class="stat-value highlight">000000</div>
+                <p>Linhas Completadas:</p>
+                <div id="final-lines" class="stat-value">0</div>
+            </div>
+            
+            <div class="menu-actions">
+                <button id="btn-restart" class="btn-retro">JOGAR NOVAMENTE</button>
+                <button id="btn-game-over-menu" class="btn-retro btn-secondary">VOLTAR AO MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js?v=1.1"></script>
+</body>
+</html>
