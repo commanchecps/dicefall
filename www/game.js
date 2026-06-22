@@ -11,6 +11,7 @@ const SCREEN_SHAKE_DURATION = 15; // frames
 
 // Game Variables
 let canvas, ctx;
+let nextCanvas, nextCtx;
 let board = [];
 let score = 0;
 let linesCompleted = 0;
@@ -140,9 +141,11 @@ class GoveaSplash {
 window.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('board-canvas');
     ctx = canvas.getContext('2d');
-    
-    // Scale canvas to match high-DPI screens if necessary
     ctx.imageSmoothingEnabled = false;
+    
+    nextCanvas = document.getElementById('next-canvas');
+    nextCtx = nextCanvas.getContext('2d');
+    nextCtx.imageSmoothingEnabled = false;
 
     // 1) Initialize the Govea Games Splash Screen
     const parentContainer = document.getElementById('game-container');
@@ -394,14 +397,110 @@ function spawnPiece() {
 
 // Update Next Piece Preview in sidebar
 function updateNextPieceUI() {
-    const el = document.getElementById('next-piece-dominoes');
-    if (!el) return;
+    if (!nextCanvas || !nextCtx) return;
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
     
-    const domA = nextPiece.dominoes.A;
-    const domB = nextPiece.dominoes.B;
+    if (!nextPiece) return;
     
-    // Format text: "A1_A2" and "B1_B2" which are ligatures in the Dicier font to show horizontal dominoes
-    el.innerHTML = `${domA.val1}_${domA.val2}<br>${domB.val1}_${domB.val2}`;
+    const matrix = nextPiece.matrix;
+    const size = matrix.length;
+    
+    // Find bounding box of active cells to center it
+    let minR = size, maxR = -1, minC = size, maxC = -1;
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            if (matrix[r][c] !== null) {
+                if (r < minR) minR = r;
+                if (r > maxR) maxR = r;
+                if (c < minC) minC = c;
+                if (c > maxC) maxC = c;
+            }
+        }
+    }
+    
+    if (maxR === -1) return;
+    
+    const pWidth = (maxC - minC + 1);
+    const pHeight = (maxR - minR + 1);
+    
+    const blockSize = 20; // fit nicely in 100x100
+    const startX = (nextCanvas.width - pWidth * blockSize) / 2;
+    const startY = (nextCanvas.height - pHeight * blockSize) / 2;
+    
+    // Draw background grid for the preview
+    nextCtx.strokeStyle = '#141414';
+    nextCtx.lineWidth = 1;
+    for (let x = 0; x <= pWidth; x++) {
+        nextCtx.beginPath();
+        nextCtx.moveTo(startX + x * blockSize, startY);
+        nextCtx.lineTo(startX + x * blockSize, startY + pHeight * blockSize);
+        nextCtx.stroke();
+    }
+    for (let y = 0; y <= pHeight; y++) {
+        nextCtx.beginPath();
+        nextCtx.moveTo(startX, startY + y * blockSize);
+        nextCtx.lineTo(startX + pWidth * blockSize, startY + y * blockSize);
+        nextCtx.stroke();
+    }
+    
+    // Draw cells using Dicier font
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            const cell = matrix[r][c];
+            if (cell !== null) {
+                const drawX = (c - minC);
+                const drawY = (r - minR);
+                const px = startX + drawX * blockSize;
+                const py = startY + drawY * blockSize;
+                
+                nextCtx.fillStyle = '#ffffff';
+                nextCtx.font = `${blockSize - 2}px Dicier`;
+                nextCtx.textAlign = 'center';
+                nextCtx.textBaseline = 'middle';
+                nextCtx.fillText(cell.val.toString(), px + blockSize / 2, py + blockSize / 2);
+            }
+        }
+    }
+    
+    // Draw domino outlines for next piece
+    nextCtx.strokeStyle = '#ffffff';
+    nextCtx.lineWidth = 1.2;
+    
+    const blocks = [];
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            if (matrix[r][c] !== null) {
+                blocks.push({ r, c, cell: matrix[r][c] });
+            }
+        }
+    }
+    
+    for (let i = 0; i < blocks.length; i++) {
+        for (let j = i + 1; j < blocks.length; j++) {
+            const b1 = blocks[i];
+            const b2 = blocks[j];
+            
+            if (b1.cell.dom === b2.cell.dom) {
+                const drawX1 = b1.c - minC;
+                const drawY1 = b1.r - minR;
+                const drawX2 = b2.c - minC;
+                const drawY2 = b2.r - minR;
+                
+                const px1 = startX + drawX1 * blockSize;
+                const py1 = startY + drawY1 * blockSize;
+                const px2 = startX + drawX2 * blockSize;
+                const py2 = startY + drawY2 * blockSize;
+                
+                if (drawY1 === drawY2 && Math.abs(drawX1 - drawX2) === 1) {
+                    const minPX = Math.min(px1, px2);
+                    nextCtx.strokeRect(minPX + 1, py1 + 1, blockSize * 2 - 2, blockSize - 2);
+                } else if (drawX1 === drawX2 && Math.abs(drawY1 - drawY2) === 1) {
+                    const minPY = Math.min(py1, py2);
+                    nextCtx.strokeRect(px1 + 1, minPY + 1, blockSize - 2, blockSize * 2 - 2);
+                }
+            }
+        }
+    }
 }
 
 // Movement left/right
@@ -540,48 +639,47 @@ function checkCompletedLines() {
     }
 }
 
-// Find adjacent cells with same values where at least one cell lies on a completed row
+// Find adjacent cells with same values where BOTH cells lie on a completed row
 function findAdjacentMatches() {
     matchingCells = [];
     const matchedKeys = new Set();
     
     const rowsSet = new Set(rowsToClear);
     
-    // Directions: Left, Right, Up, Down
+    // Only check rightward and downward to visit each edge once
     const dirs = [
-        [0, -1], [0, 1], [-1, 0], [1, 0]
+        [0, 1],  // right
+        [1, 0],  // down
     ];
     
-    for (let r = 0; r < ROWS; r++) {
+    // Only iterate over completed rows to stay strict
+    for (const r of rowsSet) {
         for (let c = 0; c < COLS; c++) {
             const cell = board[r][c];
             if (cell === null) continue;
             
-            // Check neighbors
             for (const [dr, dc] of dirs) {
                 const nr = r + dr;
                 const nc = c + dc;
                 
-                // Out of bounds check
                 if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+                
+                // Neighbor must also be in a completed row
+                if (!rowsSet.has(nr)) continue;
                 
                 const neighbor = board[nr][nc];
                 if (neighbor === null) continue;
                 
-                // The pair matches if:
-                // 1. They have the same value
-                // 2. Both of them belong to completed rows
-                if (cell.val === neighbor.val && rowsSet.has(r) && rowsSet.has(nr)) {
-                    // Unique identifier for the pair to prevent duplicate scoring
-                    const key = [r, c, nr, nc].sort((a,b) => a-b).join('-');
+                // Score only when values are identical AND both cells are in completed rows
+                if (cell.val === neighbor.val) {
+                    // Canonical key: smaller (r,c) first to avoid counting direction twice
+                    const key = `${r},${c}-${nr},${nc}`;
                     if (!matchedKeys.has(key)) {
                         matchedKeys.add(key);
                         
-                        // Add cells to matching list
                         matchingCells.push({ r, c });
                         matchingCells.push({ r: nr, c: nc });
                         
-                        // Mark cells for drawing state
                         board[r][c].match = true;
                         board[nr][nc].match = true;
                     }

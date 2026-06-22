@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
     <div id="game-container">
@@ -79,8 +79,7 @@
                     <div class="panel next-panel">
                         <h3>PRÓXIMA</h3>
                         <div class="next-piece-display">
-                            <!-- We render next piece in an element styled with Dicier font -->
-                            <span id="next-piece-dominoes" class="dicier-next">1_2<br>3_4</span>
+                            <canvas id="next-canvas" width="100" height="100"></canvas>
                         </div>
                     </div>
                     <button id="btn-menu-back" class="btn-retro btn-danger">SAIR</button>
@@ -120,6 +119,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=1.2"></script>
+    <script src="game.js?v=1.3"></script>
 </body>
 </html>
