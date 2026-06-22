@@ -802,10 +802,18 @@ function update(time = 0) {
         clearAnimationTimer--;
         
         // Toggle flash state every 5 frames
+        // Important: deduplicate matchingCells before toggling — a cell shared by
+        // multiple adjacent pairs (e.g. the middle of [3,3,3,3]) appears multiple
+        // times in the list and would toggle back to its original state if not deduped.
         if (clearAnimationTimer % 5 === 0) {
+            const seenToggle = new Set();
             for (const cell of matchingCells) {
-                if (board[cell.r][cell.c]) {
-                    board[cell.r][cell.c].flash = !board[cell.r][cell.c].flash;
+                const key = `${cell.r},${cell.c}`;
+                if (!seenToggle.has(key)) {
+                    seenToggle.add(key);
+                    if (board[cell.r][cell.c]) {
+                        board[cell.r][cell.c].flash = !board[cell.r][cell.c].flash;
+                    }
                 }
             }
         }
