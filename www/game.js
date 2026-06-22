@@ -428,11 +428,9 @@ function updateNextPieceUI() {
     const pCols = maxC - minC + 1;
     const pRows = maxR - minR + 1;
 
-    // Choose block size so the piece fits with some padding
-    const blockSize = Math.min(
-        Math.floor((cw - 8) / pCols),
-        Math.floor((ch - 8) / pRows)
-    );
+    // Use the same block size as the main board so all pieces look identical in scale.
+    // The canvas (120×120) fits a 4×4 grid at 30px/cell exactly.
+    const blockSize = BLOCK_SIZE; // 30px — matches the board renderer
 
     const startX = Math.floor((cw - pCols * blockSize) / 2);
     const startY = Math.floor((ch - pRows * blockSize) / 2);
