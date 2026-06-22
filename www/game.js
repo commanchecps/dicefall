@@ -398,17 +398,22 @@ function spawnPiece() {
 // Update Next Piece Preview in sidebar
 function updateNextPieceUI() {
     if (!nextCanvas || !nextCtx) return;
-    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-    
+
+    // Use the canvas buffer dimensions (not CSS layout)
+    const cw = nextCanvas.width;
+    const ch = nextCanvas.height;
+    nextCtx.clearRect(0, 0, cw, ch);
+
     if (!nextPiece) return;
-    
+
     const matrix = nextPiece.matrix;
-    const size = matrix.length;
-    
-    // Find bounding box of active cells to center it
-    let minR = size, maxR = -1, minC = size, maxC = -1;
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
+    const numRows = matrix.length;
+
+    // Find tight bounding box using per-row column count
+    let minR = numRows, maxR = -1, minC = Infinity, maxC = -1;
+    for (let r = 0; r < numRows; r++) {
+        const numCols = matrix[r].length;
+        for (let c = 0; c < numCols; c++) {
             if (matrix[r][c] !== null) {
                 if (r < minR) minR = r;
                 if (r > maxR) maxR = r;
@@ -417,42 +422,48 @@ function updateNextPieceUI() {
             }
         }
     }
-    
+
     if (maxR === -1) return;
-    
-    const pWidth = (maxC - minC + 1);
-    const pHeight = (maxR - minR + 1);
-    
-    const blockSize = 20; // fit nicely in 100x100
-    const startX = (nextCanvas.width - pWidth * blockSize) / 2;
-    const startY = (nextCanvas.height - pHeight * blockSize) / 2;
-    
-    // Draw background grid for the preview
-    nextCtx.strokeStyle = '#141414';
+
+    const pCols = maxC - minC + 1;
+    const pRows = maxR - minR + 1;
+
+    // Choose block size so the piece fits with some padding
+    const blockSize = Math.min(
+        Math.floor((cw - 8) / pCols),
+        Math.floor((ch - 8) / pRows)
+    );
+
+    const startX = Math.floor((cw - pCols * blockSize) / 2);
+    const startY = Math.floor((ch - pRows * blockSize) / 2);
+
+    // Draw subtle background grid
+    nextCtx.strokeStyle = '#1e1e1e';
     nextCtx.lineWidth = 1;
-    for (let x = 0; x <= pWidth; x++) {
+    for (let x = 0; x <= pCols; x++) {
         nextCtx.beginPath();
         nextCtx.moveTo(startX + x * blockSize, startY);
-        nextCtx.lineTo(startX + x * blockSize, startY + pHeight * blockSize);
+        nextCtx.lineTo(startX + x * blockSize, startY + pRows * blockSize);
         nextCtx.stroke();
     }
-    for (let y = 0; y <= pHeight; y++) {
+    for (let y = 0; y <= pRows; y++) {
         nextCtx.beginPath();
         nextCtx.moveTo(startX, startY + y * blockSize);
-        nextCtx.lineTo(startX + pWidth * blockSize, startY + y * blockSize);
+        nextCtx.lineTo(startX + pCols * blockSize, startY + y * blockSize);
         nextCtx.stroke();
     }
-    
+
     // Draw cells using Dicier font
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
+    for (let r = 0; r < numRows; r++) {
+        const numCols = matrix[r].length;
+        for (let c = 0; c < numCols; c++) {
             const cell = matrix[r][c];
             if (cell !== null) {
-                const drawX = (c - minC);
-                const drawY = (r - minR);
-                const px = startX + drawX * blockSize;
-                const py = startY + drawY * blockSize;
-                
+                const drawC = c - minC;
+                const drawR = r - minR;
+                const px = startX + drawC * blockSize;
+                const py = startY + drawR * blockSize;
+
                 nextCtx.fillStyle = '#ffffff';
                 nextCtx.font = `${blockSize - 2}px Dicier`;
                 nextCtx.textAlign = 'center';
@@ -461,42 +472,42 @@ function updateNextPieceUI() {
             }
         }
     }
-    
-    // Draw domino outlines for next piece
+
+    // Draw domino outline brackets
     nextCtx.strokeStyle = '#ffffff';
-    nextCtx.lineWidth = 1.2;
-    
+    nextCtx.lineWidth = 1.5;
+
     const blocks = [];
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
+    for (let r = 0; r < numRows; r++) {
+        const numCols = matrix[r].length;
+        for (let c = 0; c < numCols; c++) {
             if (matrix[r][c] !== null) {
                 blocks.push({ r, c, cell: matrix[r][c] });
             }
         }
     }
-    
+
     for (let i = 0; i < blocks.length; i++) {
         for (let j = i + 1; j < blocks.length; j++) {
             const b1 = blocks[i];
             const b2 = blocks[j];
-            
+
             if (b1.cell.dom === b2.cell.dom) {
-                const drawX1 = b1.c - minC;
-                const drawY1 = b1.r - minR;
-                const drawX2 = b2.c - minC;
-                const drawY2 = b2.r - minR;
-                
-                const px1 = startX + drawX1 * blockSize;
-                const py1 = startY + drawY1 * blockSize;
-                const px2 = startX + drawX2 * blockSize;
-                const py2 = startY + drawY2 * blockSize;
-                
-                if (drawY1 === drawY2 && Math.abs(drawX1 - drawX2) === 1) {
-                    const minPX = Math.min(px1, px2);
-                    nextCtx.strokeRect(minPX + 1, py1 + 1, blockSize * 2 - 2, blockSize - 2);
-                } else if (drawX1 === drawX2 && Math.abs(drawY1 - drawY2) === 1) {
-                    const minPY = Math.min(py1, py2);
-                    nextCtx.strokeRect(px1 + 1, minPY + 1, blockSize - 2, blockSize * 2 - 2);
+                const dc1 = b1.c - minC, dr1 = b1.r - minR;
+                const dc2 = b2.c - minC, dr2 = b2.r - minR;
+                const px1 = startX + dc1 * blockSize;
+                const py1 = startY + dr1 * blockSize;
+                const px2 = startX + dc2 * blockSize;
+                const py2 = startY + dr2 * blockSize;
+
+                if (dr1 === dr2 && Math.abs(dc1 - dc2) === 1) {
+                    // Horizontal domino pair
+                    const leftPx = Math.min(px1, px2);
+                    nextCtx.strokeRect(leftPx + 1, py1 + 1, blockSize * 2 - 2, blockSize - 2);
+                } else if (dc1 === dc2 && Math.abs(dr1 - dr2) === 1) {
+                    // Vertical domino pair
+                    const topPy = Math.min(py1, py2);
+                    nextCtx.strokeRect(px1 + 1, topPy + 1, blockSize - 2, blockSize * 2 - 2);
                 }
             }
         }

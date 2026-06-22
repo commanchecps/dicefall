@@ -315,14 +315,13 @@ body::after {
 }
 
 .next-piece-display {
-    min-height: 100px;
+    min-height: 130px;
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: #111;
     border: 2px dashed #333;
-    width: 100%;
-    padding: 10px;
+    padding: 4px;
 }
 
 .board-container {
