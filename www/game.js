@@ -33,6 +33,7 @@ let clearAnimationTimer = 0;
 const CLEAR_ANIMATION_DURATION = 30; // frames (approx 500ms)
 let matchingCells = []; // Cells marked for flashing and scoring
 let rowsToClear = [];
+let particles = []; // Particle FX active on board
 
 // Tetromino matrices (0 represents empty space, 1 represents a block)
 const SHAPES = {
@@ -293,6 +294,7 @@ function startGame() {
     isClearingAnimation = false;
     matchingCells = [];
     rowsToClear = [];
+    particles = [];
     
     updateScoreUI();
     
@@ -606,6 +608,7 @@ function clearRows() {
             seenCells.add(key);
             const val = board[cell.r][cell.c].val;
             dominoScore += val; // Just add the face value (1-6) without multiplier!
+            spawnExplosion(cell.c, cell.r, val, true);
         }
     }
     
@@ -682,6 +685,9 @@ function update(time = 0) {
     const deltaTime = time - lastTime;
     lastTime = time;
     
+    // Update active particle systems
+    updateParticles();
+
     if (isClearingAnimation) {
         // Run flashing clear animation
         clearAnimationTimer--;
@@ -692,6 +698,14 @@ function update(time = 0) {
                 if (board[cell.r][cell.c]) {
                     board[cell.r][cell.c].flash = !board[cell.r][cell.c].flash;
                 }
+            }
+        }
+        
+        // Spawn sparks during flash phase
+        if (matchingCells.length > 0 && Math.random() < 0.4) {
+            const randomCell = matchingCells[Math.floor(Math.random() * matchingCells.length)];
+            if (board[randomCell.r][randomCell.c]) {
+                spawnExplosion(randomCell.c, randomCell.r, board[randomCell.r][randomCell.c].val, false);
             }
         }
         
@@ -785,6 +799,9 @@ function draw() {
         }
         drawPieceDominoOutlines();
     }
+    
+    // Draw scoring/flash particles on top
+    drawParticles();
     
     ctx.restore();
 }
@@ -897,5 +914,158 @@ function drawPieceDominoOutlines() {
                 }
             }
         }
+    }
+}
+
+// Particle System implementation for Super Pixel Effects
+function spawnExplosion(c, r, val, isFinalClear) {
+    const cx = c * BLOCK_SIZE + BLOCK_SIZE / 2;
+    const cy = r * BLOCK_SIZE + BLOCK_SIZE / 2;
+    
+    if (isFinalClear) {
+        // 1. Expanding Ring
+        particles.push({
+            type: 'ring',
+            x: cx,
+            y: cy,
+            size: BLOCK_SIZE / 2,
+            maxSize: BLOCK_SIZE * 2.2,
+            life: 15,
+            maxLife: 15,
+            color: '#ffffff'
+        });
+        
+        // 2. Cross Burst
+        particles.push({
+            type: 'cross',
+            x: cx,
+            y: cy,
+            len: 0,
+            maxLen: BLOCK_SIZE * 1.5,
+            life: 12,
+            maxLife: 12,
+            color: '#ffffff'
+        });
+        
+        // 3. Floating Score Text
+        particles.push({
+            type: 'text',
+            x: cx,
+            y: cy - 10,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: -1.2,
+            text: `+${val}`,
+            life: 45,
+            maxLife: 45,
+            color: '#ffffff'
+        });
+        
+        // 4. Spark Particles
+        const numSparks = 10 + Math.floor(Math.random() * 6);
+        for (let i = 0; i < numSparks; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.0 + Math.random() * 4.0;
+            const colors = ['#ffffff', '#ffffff', '#e0e0e0', '#888888'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            particles.push({
+                type: 'spark',
+                x: cx,
+                y: cy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 1.2, // upward launch bias
+                size: 2 + Math.floor(Math.random() * 3), // 2 to 4 pixels
+                life: 20 + Math.floor(Math.random() * 15),
+                maxLife: 35,
+                color: color
+            });
+        }
+    } else {
+        // Spark particles during flashing
+        const numSparks = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < numSparks; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 0.5 + Math.random() * 1.5;
+            particles.push({
+                type: 'spark',
+                x: cx + (Math.random() - 0.5) * 16,
+                y: cy + (Math.random() - 0.5) * 16,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 0.5,
+                size: 2,
+                life: 10 + Math.floor(Math.random() * 10),
+                maxLife: 20,
+                color: '#ffffff'
+            });
+        }
+    }
+}
+
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life--;
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        
+        if (p.type === 'spark') {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.12; // gravity
+            p.vx *= 0.94; // air resistance
+            p.vy *= 0.94;
+        } else if (p.type === 'text') {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.98;
+            p.vy *= 0.95; // decelerate upward rise
+        } else if (p.type === 'ring') {
+            p.size += (p.maxSize - p.size) * 0.18;
+        } else if (p.type === 'cross') {
+            p.len += (p.maxLen - p.len) * 0.22;
+        }
+    }
+}
+
+function drawParticles() {
+    for (const p of particles) {
+        ctx.save();
+        const alpha = Math.max(0, p.life / p.maxLife);
+        
+        if (p.type === 'spark') {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = alpha;
+            ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), p.size, p.size);
+        } else if (p.type === 'ring') {
+            ctx.strokeStyle = p.color;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), Math.floor(p.size), Math.floor(p.size));
+        } else if (p.type === 'cross') {
+            ctx.strokeStyle = p.color;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 2;
+            const len = Math.floor(p.len);
+            
+            ctx.beginPath();
+            ctx.moveTo(Math.floor(p.x - len), Math.floor(p.y));
+            ctx.lineTo(Math.floor(p.x + len), Math.floor(p.y));
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(Math.floor(p.x), Math.floor(p.y - len));
+            ctx.lineTo(Math.floor(p.x), Math.floor(p.y + len));
+            ctx.stroke();
+        } else if (p.type === 'text') {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = alpha;
+            ctx.font = '10px "Silkscreen", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(p.text, Math.floor(p.x), Math.floor(p.y));
+        }
+        ctx.restore();
     }
 }
