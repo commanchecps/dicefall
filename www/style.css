@@ -623,7 +623,7 @@ body::after {
     height: 12px;
     border: 2px solid var(--border-color);
     background-color: #111;
-    margin: 10px 0;
+    margin: 10px auto;
 }
 .progress-bar-container.mini {
     height: 8px;
@@ -972,10 +972,11 @@ body::after {
     }
     
     .screen {
+        height: 100% !important;
         overflow-y: auto !important;
         max-height: 100% !important;
         padding: 4vh 4vw !important;
-        justify-content: flex-start !important;
+        justify-content: center !important;
         gap: 3vh !important;
     }
 
@@ -989,7 +990,7 @@ body::after {
     }
 
     .credits {
-        margin-top: auto !important;
+        margin-top: 0 !important;
         padding-top: 20px !important;
     }
 
