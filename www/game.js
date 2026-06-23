@@ -185,7 +185,9 @@ const LANG = {
         collection: 'COLEÇÃO',
         unlockedCount: '{0}/{1} desbloqueados',
         recycle: 'RECICLAR',
-        next: 'PRÓXIMA'
+        next: 'PRÓXIMA',
+        startShuffle: 'JOGAR',
+        proceedToUpgrades: 'MELHORIAS'
     },
     'en': {
         startRun: 'START RUN',
@@ -222,7 +224,9 @@ const LANG = {
         collection: 'COLLECTION',
         unlockedCount: '{0}/{1} unlocked',
         recycle: 'DISCARD',
-        next: 'NEXT'
+        next: 'NEXT',
+        startShuffle: 'PLAY',
+        proceedToUpgrades: 'UPGRADES'
     }
 };
 
@@ -763,8 +767,8 @@ function updateLanguageTexts() {
     document.getElementById('btn-skip-upgrade').innerText = t('skip');
     document.getElementById('btn-collection-back').innerText = t('backToMenu');
     
-    document.getElementById('btn-start-shuffle').innerText = t('startRun');
-    document.getElementById('btn-go-to-upgrades').innerText = t('recycle'); // We recycle this button as proceed
+    document.getElementById('btn-start-shuffle').innerText = t('startShuffle');
+    document.getElementById('btn-go-to-upgrades').innerText = t('proceedToUpgrades');
 
     document.getElementById('lbl-victory-score').innerText = t('score');
     document.getElementById('btn-victory-menu').innerText = t('backToMenu');
@@ -1046,6 +1050,19 @@ function startNewRun() {
     currentShuffle = 0;
     
     showScreen('shuffleIntro');
+}
+
+// Render Shuffle Result dramatic elements
+function showShuffleResult() {
+    const s = SHUFFLES[currentShuffle];
+    document.getElementById('result-title').innerText = t('shufflePassed');
+    
+    const detailsEl = document.getElementById('result-details');
+    if (currentLang === 'pt-BR') {
+        detailsEl.innerText = `Pontuação: ${shuffleScore} / Meta: ${s.target}`;
+    } else {
+        detailsEl.innerText = `Score: ${shuffleScore} / Target: ${s.target}`;
+    }
 }
 
 // Render Shuffle Intro dramatic elements
