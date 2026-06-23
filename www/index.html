@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.6">
+    <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
     <div id="game-container">
@@ -21,8 +21,10 @@
             <p class="subtitle">DOMINO TETRIS ROGUELIKE</p>
             
             <div class="menu-actions">
-                <button id="btn-start" class="btn-retro">INICIAR JOGO</button>
+                <button id="btn-start" class="btn-retro">INICIAR RUN</button>
                 <button id="btn-how-to" class="btn-retro btn-secondary">COMO JOGAR</button>
+                <button id="btn-collection" class="btn-retro btn-secondary">COLEÇÃO</button>
+                <button id="btn-lang-toggle" class="btn-retro btn-secondary">🌐 pt-BR</button>
             </div>
             
             <div class="credits">
@@ -30,24 +32,86 @@
             </div>
         </div>
 
-        <!-- HOW TO PLAY MODAL / OVERLAY -->
+        <!-- HOW TO PLAY MODAL -->
         <div id="how-to-modal" class="modal">
             <div class="modal-content">
-                <h2 class="modal-title">COMO JOGAR</h2>
-                <div class="instructions">
-                    <p><strong>1. Peças e Valores:</strong> As peças do Tetris são formadas por pares de dominós. Cada quadrado tem um valor de dado de 1 a 6 (ou vazio/0).</p>
-                    <p><strong>2. Controles:</strong> 
-                        <ul>
-                            <li><kbd>←</kbd> / <kbd>→</kbd> : Mover para os lados.</li>
-                            <li><kbd>↑</kbd> : Rotacionar a peça.</li>
-                            <li><kbd>↓</kbd> : Descida suave.</li>
-                            <li><kbd>Espaço</kbd> : Queda instantânea.</li>
-                        </ul>
-                    </p>
-                    <p><strong>3. Pontuação:</strong> Quando completar uma linha horizontal, o jogo procura <strong>valores iguais adjacentes</strong> (lado a lado ou cima/baixo) que estejam tocando a linha completada. Esses pares piscam e somam pontos, e então a linha é limpa!</p>
+                <h2 id="modal-how-to-title" class="modal-title">COMO JOGAR</h2>
+                <div id="instructions-content" class="instructions">
+                    <!-- Loaded dynamically via JS -->
                 </div>
                 <button id="btn-close-modal" class="btn-retro">ENTENDI</button>
             </div>
+        </div>
+
+        <!-- SHUFFLE INTRO SCREEN -->
+        <div id="shuffle-intro-screen" class="screen">
+            <h2 id="intro-shuffle-title" class="shuffle-title-dramatic">1º EMBARALHAMENTO</h2>
+            <div class="intro-panel">
+                <p id="intro-shuffle-target" class="intro-stat">Meta: 100 pts</p>
+                <p id="intro-shuffle-pieces" class="intro-stat">30 peças disponíveis</p>
+            </div>
+            <button id="btn-start-shuffle" class="btn-retro">JOGAR</button>
+        </div>
+
+        <!-- SHUFFLE RESULT SCREEN -->
+        <div id="shuffle-result-screen" class="screen">
+            <h2 id="result-title" class="result-title-dramatic">EMBARALHAMENTO COMPLETO!</h2>
+            <div class="result-panel">
+                <p id="result-details" class="result-stat">Pontuação: 0 / Meta: 0</p>
+            </div>
+            <button id="btn-go-to-upgrades" class="btn-retro">MELHORIAS</button>
+        </div>
+
+        <!-- UPGRADE SELECT SCREEN -->
+        <div id="upgrade-select-screen" class="screen">
+            <h2 id="lbl-choose-upgrade" class="screen-title">ESCOLHA UMA MELHORIA</h2>
+            <div id="upgrade-cards-container" class="cards-container">
+                <!-- Loaded dynamically via JS -->
+            </div>
+            <button id="btn-skip-upgrade" class="btn-retro btn-secondary">PULAR</button>
+        </div>
+
+        <!-- RUN COMPLETE SCREEN -->
+        <div id="run-complete-screen" class="screen">
+            <h2 class="victory-title-dramatic">RUN COMPLETA!</h2>
+            <div class="victory-panel">
+                <p id="lbl-victory-score">Pontuação Final:</p>
+                <div id="victory-score-val" class="stat-value highlight">000000</div>
+                <div class="stats-grid">
+                    <div>
+                        <span id="lbl-vic-stat-played">Runs Jogadas</span>: <span id="vic-stat-played-val">0</span>
+                    </div>
+                    <div>
+                        <span id="lbl-vic-stat-won">Runs Vencidas</span>: <span id="vic-stat-won-val">0</span>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-victory-menu" class="btn-retro">VOLTAR AO MENU</button>
+        </div>
+
+        <!-- RUN FAILED SCREEN -->
+        <div id="run-failed-screen" class="screen">
+            <h2 class="defeat-title-dramatic">RUN ENCERRADA</h2>
+            <div class="defeat-panel">
+                <p id="lbl-defeat-reason">Meta não alcançada</p>
+                <div id="defeat-score-val" class="stat-value highlight">000000</div>
+            </div>
+            <button id="btn-defeat-menu" class="btn-retro">VOLTAR AO MENU</button>
+        </div>
+
+        <!-- COLLECTION SCREEN -->
+        <div id="collection-screen" class="screen">
+            <h2 id="lbl-collection-title" class="screen-title">COLEÇÃO</h2>
+            <div class="collection-progress-container">
+                <div id="collection-progress-text" class="progress-label">0/40 desbloqueados</div>
+                <div class="progress-bar-container">
+                    <div id="collection-progress-bar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div id="collection-grid" class="collection-grid">
+                <!-- Loaded dynamically via JS -->
+            </div>
+            <button id="btn-collection-back" class="btn-retro btn-secondary">VOLTAR</button>
         </div>
 
         <!-- GAME SCREEN -->
@@ -56,16 +120,23 @@
                 <!-- Left Sidebar: Stats -->
                 <div class="sidebar stats-sidebar">
                     <div class="panel">
-                        <h3>PONTUAÇÃO</h3>
+                        <h3 id="lbl-score">PONTUAÇÃO</h3>
                         <div id="val-score" class="stat-value">000000</div>
                     </div>
                     <div class="panel">
-                        <h3>LINHAS</h3>
-                        <div id="val-lines" class="stat-value">0</div>
+                        <h3 id="lbl-target">META</h3>
+                        <div id="val-target" class="stat-value">0</div>
+                        <div class="progress-bar-container mini">
+                            <div id="target-progress" class="progress-bar" style="width: 0%;"></div>
+                        </div>
                     </div>
                     <div class="panel">
-                        <h3>NÍVEL</h3>
-                        <div id="val-level" class="stat-value">1</div>
+                        <h3 id="lbl-pieces">PEÇAS</h3>
+                        <div id="val-pieces" class="stat-value">0</div>
+                    </div>
+                    <div class="panel">
+                        <h3 id="lbl-mult">MULT</h3>
+                        <div id="val-mult" class="stat-value">1.0x</div>
                     </div>
                 </div>
 
@@ -74,51 +145,57 @@
                     <canvas id="board-canvas" width="300" height="600"></canvas>
                 </div>
 
-                <!-- Right Sidebar: Next piece & Actions -->
+                <!-- Right Sidebar: Next piece & Upgrades -->
                 <div class="sidebar info-sidebar">
                     <div class="panel next-panel">
-                        <h3>PRÓXIMA</h3>
+                        <h3 id="lbl-next">PRÓXIMA</h3>
                         <div class="next-piece-display">
                             <canvas id="next-canvas" width="120" height="120"></canvas>
+                            <canvas id="next-canvas-2" width="120" height="120" style="display: none;"></canvas>
+                            <canvas id="next-canvas-3" width="120" height="120" style="display: none;"></canvas>
                         </div>
                     </div>
-                    <button id="btn-menu-back" class="btn-retro btn-danger">SAIR</button>
+                    
+                    <div id="hold-panel" class="panel hold-panel" style="display: none;">
+                        <h3 id="lbl-hold">HOLD</h3>
+                        <div class="hold-piece-display">
+                            <canvas id="hold-canvas" width="120" height="120"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel upgrades-panel">
+                        <h3 id="lbl-upgrades">MELHORIAS</h3>
+                        <div id="active-upgrades-list" class="hud-upgrades-list"></div>
+                    </div>
+
+                    <div class="actions-panel">
+                        <button id="btn-recycle" class="btn-retro btn-secondary" style="display: none;">♻️ RECICLAR</button>
+                        <button id="btn-menu-back" class="btn-retro btn-danger">SAIR</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Mobile Controls -->
-            <div class="mobile-controls">
-                <div class="control-row">
-                    <button id="ctrl-rotate" class="btn-control">↑</button>
+            <!-- Mobile Controls - Floating Draggable Pad -->
+            <div id="mobile-pad" class="mobile-pad">
+                <div class="pad-row">
+                    <button id="pad-rot-left" class="pad-btn">↶</button>
+                    <button id="pad-up" class="pad-btn">▲</button>
+                    <button id="pad-rot-right" class="pad-btn">↷</button>
                 </div>
-                <div class="control-row">
-                    <button id="ctrl-left" class="btn-control">←</button>
-                    <button id="ctrl-drop" class="btn-control">DROP</button>
-                    <button id="ctrl-right" class="btn-control">→</button>
+                <div class="pad-row">
+                    <button id="pad-left" class="pad-btn">◀</button>
+                    <button id="pad-drop" class="pad-btn pad-center">DROP</button>
+                    <button id="pad-right" class="pad-btn">▶</button>
                 </div>
-                <div class="control-row">
-                    <button id="ctrl-down" class="btn-control">↓</button>
+                <div class="pad-row">
+                    <button id="pad-down" class="pad-btn">▼</button>
+                    <button id="pad-recycle" class="pad-btn pad-secondary" style="display: none;">♻️</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- GAME OVER SCREEN -->
-        <div id="game-over-screen" class="screen">
-            <h2 class="game-over-title">FIM DE JOGO</h2>
-            <div class="game-over-panel">
-                <p>Pontuação Final:</p>
-                <div id="final-score" class="stat-value highlight">000000</div>
-                <p>Linhas Completadas:</p>
-                <div id="final-lines" class="stat-value">0</div>
-            </div>
-            
-            <div class="menu-actions">
-                <button id="btn-restart" class="btn-retro">JOGAR NOVAMENTE</button>
-                <button id="btn-game-over-menu" class="btn-retro btn-secondary">VOLTAR AO MENU</button>
+                <div class="pad-handle">⠿ <span id="lbl-drag-handle">ARRASTAR</span></div>
             </div>
         </div>
     </div>
 
-    <script src="game.js?v=1.6"></script>
+    <script src="game.js?v=2.0"></script>
 </body>
 </html>

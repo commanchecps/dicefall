@@ -12,15 +12,14 @@ const SCREEN_SHAKE_DURATION = 15; // frames
 // Game Variables
 let canvas, ctx;
 let nextCanvas, nextCtx;
+let nextCanvas2, nextCtx2;
+let nextCanvas3, nextCtx3;
+let holdCanvas, holdCtx;
+
 let board = [];
-let score = 0;
-let linesCompleted = 0;
-let level = 1;
-let currentPiece = null;
-let nextPiece = null;
 let isPaused = false;
 let isGameOver = false;
-let activeScreen = 'menu'; // 'menu', 'game', 'gameover'
+let activeScreen = 'menu'; // 'menu', 'game', 'gameover', 'shuffleIntro', 'shuffleResult', 'upgradeSelect', 'runComplete', 'runFailed', 'collection'
 let fontLoaded = false;
 
 // Game Loop Timing
@@ -36,7 +35,7 @@ let matchingCells = []; // Cells marked for flashing and scoring
 let rowsToClear = [];
 let particles = []; // Particle FX active on board
 
-// Tetromino matrices (0 represents empty space, 1 represents a block)
+// Tetromino matrices
 const SHAPES = {
     'I': [
         [0, 0, 0, 0],
@@ -75,7 +74,498 @@ const SHAPES = {
     ]
 };
 
-// Govea Games SVG mark and Splash implementation
+// ==========================================
+// ROGUELIKE AND RUN STATE VARIABLES
+// ==========================================
+let currentShuffle = 0; // 0 (1º), 1 (2º), 2 (Final)
+let shuffleScore = 0;
+let runScore = 0;
+let piecesRemaining = 0;
+let nextPieces = []; // queue of upcoming pieces
+let heldPiece = null;
+let hasHeldThisTurn = false;
+
+const SHUFFLES = [
+    { key: 'shuffle1', target: 100, pieces: 30 },
+    { key: 'shuffle2', target: 300, pieces: 25 },
+    { key: 'shuffleFinal', target: 700, pieces: 20 }
+];
+
+let runState = {
+    bonusChipsPerLine: 0,
+    pairBonusChips: 0,
+    multPerLine: 0,
+    bonusPieces: 0,
+    previewCount: 1,
+    holdEnabled: false,
+    recycleUses: 0,
+    recycleUsesLeft: 0,
+    bombUses: 0,
+    bombUsesLeft: 0,
+    transmuteUses: 0,
+    transmuteUsesLeft: 0,
+    jackpot6: false,
+    comboStreak: false,
+    comboCount: 0,
+    highValueBonus: 0,
+    diagonalMatch: false,
+    cascadeEnabled: false,
+    perfectDominoBonus: 0,
+    mirrorBonus: false,
+    snakeEyes: false,
+    goldenLine: false,
+    exponentialMult: false,
+    exponentialCount: 0,
+    momentumEnabled: false,
+    snowballMult: false,
+    snowballCount: 0,
+    heatChips: 0,
+    weightedHigh: false,
+    wildChance: 0,
+    speedMult: 1,
+    addMult: 0,
+    multMult: 1,
+    activeUpgrades: [] // Array of upgrade IDs
+};
+
+let playerStats = {
+    runsPlayed: 0,
+    runsWon: 0,
+    totalScore: 0,
+    bestRunScore: 0,
+    bestShuffleScore: 0,
+    totalLinesCleared: 0,
+    totalPiecesPlaced: 0,
+    total6Pairs: 0,
+    totalDiagonals: 0,
+    maxComboInLine: 0,
+    perfectShuffles: 0,
+    consecutiveWins: 0,
+    maxConsecutiveWins: 0,
+    totalUpgradesPicked: 0,
+    uniqueUpgradesSeen: 0
+};
+
+// ==========================================
+// INTERNATIONALIZATION (i18n)
+// ==========================================
+const LANG = {
+    'pt-BR': {
+        startRun: 'INICIAR RUN',
+        howToPlay: 'COMO JOGAR',
+        settings: 'CONFIGURAÇÕES',
+        language: 'IDIOMA',
+        score: 'PONTUAÇÃO',
+        target: 'META',
+        pieces: 'PEÇAS',
+        mult: 'MULT',
+        chips: 'CHIPS',
+        shuffle1: '1º EMBARALHAMENTO',
+        shuffle2: '2º EMBARALHAMENTO',
+        shuffleFinal: 'EMBARALHAMENTO FINAL',
+        shuffleTarget: 'Meta: {0} pts',
+        shufflePieces: '{0} peças disponíveis',
+        shufflePassed: 'EMBARALHAMENTO COMPLETO!',
+        shuffleFailed: 'EMBARALHAMENTO FALHOU',
+        runComplete: 'RUN COMPLETA!',
+        runFailed: 'RUN ENCERRADA',
+        chooseUpgrade: 'ESCOLHA UMA MELHORIA',
+        skip: 'PULAR',
+        locked: 'BLOQUEADO',
+        unlockReq: 'Requisito: {0}',
+        runsPlayed: 'Runs Jogadas',
+        bestScore: 'Melhor Pontuação',
+        totalLines: 'Total de Linhas',
+        gameOver: 'FIM DE JOGO',
+        playAgain: 'JOGAR NOVAMENTE',
+        backToMenu: 'VOLTAR AO MENU',
+        paused: 'JOGO PAUSADO',
+        pressP: 'Pressione P para continuar',
+        dragHandle: 'ARRASTAR',
+        collection: 'COLEÇÃO',
+        unlockedCount: '{0}/{1} desbloqueados',
+        recycle: 'RECICLAR',
+        next: 'PRÓXIMA'
+    },
+    'en': {
+        startRun: 'START RUN',
+        howToPlay: 'HOW TO PLAY',
+        settings: 'SETTINGS',
+        language: 'LANGUAGE',
+        score: 'SCORE',
+        target: 'TARGET',
+        pieces: 'PIECES',
+        mult: 'MULT',
+        chips: 'CHIPS',
+        shuffle1: '1ST SHUFFLE',
+        shuffle2: '2ND SHUFFLE',
+        shuffleFinal: 'FINAL SHUFFLE',
+        shuffleTarget: 'Target: {0} pts',
+        shufflePieces: '{0} pieces available',
+        shufflePassed: 'SHUFFLE COMPLETE!',
+        shuffleFailed: 'SHUFFLE FAILED',
+        runComplete: 'RUN COMPLETE!',
+        runFailed: 'RUN OVER',
+        chooseUpgrade: 'CHOOSE AN UPGRADE',
+        skip: 'SKIP',
+        locked: 'LOCKED',
+        unlockReq: 'Requires: {0}',
+        runsPlayed: 'Runs Played',
+        bestScore: 'Best Score',
+        totalLines: 'Total Lines',
+        gameOver: 'GAME OVER',
+        playAgain: 'PLAY AGAIN',
+        backToMenu: 'BACK TO MENU',
+        paused: 'GAME PAUSED',
+        pressP: 'Press P to continue',
+        dragHandle: 'DRAG',
+        collection: 'COLLECTION',
+        unlockedCount: '{0}/{1} unlocked',
+        recycle: 'DISCARD',
+        next: 'NEXT'
+    }
+};
+
+let currentLang = localStorage.getItem('dicefallLang') || 'pt-BR';
+
+function t(key, ...args) {
+    let str = LANG[currentLang][key] || LANG['pt-BR'][key] || key;
+    args.forEach((arg, i) => { str = str.replace(`{${i}}`, arg); });
+    return str;
+}
+
+// ==========================================
+// ALL UPGRADES CATALOG
+// ==========================================
+const ALL_UPGRADES = [
+    // ========== COMMON — SCORE ==========
+    { id: 'mult_plus1', name: { 'pt-BR': 'Dobrador', en: 'Doubler' }, 
+      desc: { 'pt-BR': '+1 Mult', en: '+1 Mult' },
+      icon: '×2', tier: 'common', category: 'score',
+      effect: (state) => { state.addMult += 1; },
+      unlock: null
+    },
+    { id: 'chips_plus5', name: { 'pt-BR': 'Bônus de Chips', en: 'Chip Bonus' },
+      desc: { 'pt-BR': '+5 Chips por linha', en: '+5 Chips per line' },
+      icon: '💰', tier: 'common', category: 'score',
+      effect: (state) => { state.bonusChipsPerLine += 5; },
+      unlock: null
+    },
+    { id: 'pair_bonus', name: { 'pt-BR': 'Par Premiado', en: 'Pair Prize' },
+      desc: { 'pt-BR': '+3 Chips por par adjacente', en: '+3 Chips per adjacent pair' },
+      icon: '🎯', tier: 'common', category: 'score',
+      effect: (state) => { state.pairBonusChips += 3; },
+      unlock: null
+    },
+    { id: 'line_mult', name: { 'pt-BR': 'Varredura', en: 'Sweep' },
+      desc: { 'pt-BR': '+0.5 Mult por linha limpa', en: '+0.5 Mult per cleared line' },
+      icon: '🧹', tier: 'common', category: 'score',
+      effect: (state) => { state.multPerLine += 0.5; },
+      unlock: null
+    },
+    
+    // ========== COMMON — MECHANIC ==========
+    { id: 'slow_fall', name: { 'pt-BR': 'Queda Lenta', en: 'Slow Fall' },
+      desc: { 'pt-BR': 'Velocidade -30%', en: 'Speed -30%' },
+      icon: '🪶', tier: 'common', category: 'mechanic',
+      effect: (state) => { state.speedMult *= 1.3; },
+      unlock: null
+    },
+    { id: 'extra_pieces3', name: { 'pt-BR': 'Reserva', en: 'Reserve' },
+      desc: { 'pt-BR': '+3 peças por embaralhamento', en: '+3 pieces per shuffle' },
+      icon: '📦', tier: 'common', category: 'mechanic',
+      effect: (state) => { state.bonusPieces += 3; },
+      unlock: null
+    },
+    { id: 'preview2', name: { 'pt-BR': 'Binóculo', en: 'Binoculars' },
+      desc: { 'pt-BR': 'Exibe 2 próximas peças', en: 'Shows 2 next pieces' },
+      icon: '🔭', tier: 'common', category: 'vision',
+      effect: (state) => { state.previewCount = Math.max(state.previewCount, 2); },
+      unlock: null
+    },
+    
+    // ========== UNCOMMON — SCORE ==========
+    { id: 'mult_plus2', name: { 'pt-BR': 'Triplicador', en: 'Tripler' },
+      desc: { 'pt-BR': '+2 Mult', en: '+2 Mult' },
+      icon: '×3', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.addMult += 2; },
+      unlock: { stat: 'runsPlayed', value: 3, desc: { 'pt-BR': 'Jogar 3 runs', en: 'Play 3 runs' } }
+    },
+    { id: 'multmult15', name: { 'pt-BR': 'Amplificador', en: 'Amplifier' },
+      desc: { 'pt-BR': '×1.5 Mult', en: '×1.5 Mult' },
+      icon: '⚡', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.multMult *= 1.5; },
+      unlock: { stat: 'runsPlayed', value: 5, desc: { 'pt-BR': 'Jogar 5 runs', en: 'Play 5 runs' } }
+    },
+    { id: 'jackpot6', name: { 'pt-BR': 'Jackpot', en: 'Jackpot' },
+      desc: { 'pt-BR': 'Par 6-6 dá +10 Chips', en: '6-6 pair gives +10 Chips' },
+      icon: '🎰', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.jackpot6 = true; },
+      unlock: { stat: 'total6Pairs', value: 5, desc: { 'pt-BR': 'Fazer 5 pares de 6', en: 'Make 5 pairs of 6' } }
+    },
+    { id: 'combo_streak', name: { 'pt-BR': 'Sequência', en: 'Streak' },
+      desc: { 'pt-BR': '+1 Mult por combo consecutivo', en: '+1 Mult per consecutive combo' },
+      icon: '🔥', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.comboStreak = true; },
+      unlock: { stat: 'totalLinesCleared', value: 20, desc: { 'pt-BR': 'Limpar 20 linhas', en: 'Clear 20 lines' } }
+    },
+    { id: 'high_value', name: { 'pt-BR': 'Alto Valor', en: 'High Value' },
+      desc: { 'pt-BR': 'Peças de valor 5-6 dão +2 Chips cada', en: 'Dice 5-6 give +2 Chips each' },
+      icon: '💎', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.highValueBonus = 2; },
+      unlock: { stat: 'bestShuffleScore', value: 100, desc: { 'pt-BR': 'Fazer 100pts em 1 emb.', en: 'Score 100pts in 1 shuffle' } }
+    },
+    { id: 'weighted_high_chips', name: { 'pt-BR': 'Dados Pesados', en: 'Heavy Dice' },
+      desc: { 'pt-BR': 'Par de 5-5 ou 6-6 dá +8 Chips', en: '5-5 or 6-6 pair gives +8 Chips' },
+      icon: '🁫', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.highValueBonus += 8; },
+      unlock: { stat: 'total6Pairs', value: 10, desc: { 'pt-BR': 'Fazer 10 pares de 6', en: 'Make 10 pairs of 6' } }
+    },
+    
+    // ========== UNCOMMON — MECHANIC ==========
+    { id: 'diagonal', name: { 'pt-BR': 'Diagonal+', en: 'Diagonal+' },
+      desc: { 'pt-BR': 'Adjacência diagonal pontua', en: 'Diagonal adjacency scores' },
+      icon: '📐', tier: 'uncommon', category: 'mechanic',
+      effect: (state) => { state.diagonalMatch = true; },
+      unlock: { stat: 'runsPlayed', value: 8, desc: { 'pt-BR': 'Jogar 8 runs', en: 'Play 8 runs' } }
+    },
+    { id: 'recycler', name: { 'pt-BR': 'Reciclador', en: 'Recycler' },
+      desc: { 'pt-BR': '1× descarta peça por embaralhado', en: '1× discard current piece per shuffle' },
+      icon: '♻️', tier: 'uncommon', category: 'mechanic',
+      effect: (state) => { state.recycleUses += 1; },
+      unlock: { stat: 'totalPiecesPlaced', value: 100, desc: { 'pt-BR': 'Colocar 100 peças', en: 'Place 100 pieces' } }
+    },
+    { id: 'preview3', name: { 'pt-BR': 'Telescópio', en: 'Telescope' },
+      desc: { 'pt-BR': 'Exibe 3 próximas peças', en: 'Shows 3 next pieces' },
+      icon: '🔭', tier: 'uncommon', category: 'vision',
+      effect: (state) => { state.previewCount = Math.max(state.previewCount, 3); },
+      unlock: { stat: 'runsPlayed', value: 10, desc: { 'pt-BR': 'Jogar 10 runs', en: 'Play 10 runs' } }
+    },
+    { id: 'hold_piece', name: { 'pt-BR': 'Reservatório', en: 'Hold Tank' },
+      desc: { 'pt-BR': 'Permite guardar 1 peça (tecla H)', en: 'Hold 1 piece (H key)' },
+      icon: '🗄️', tier: 'uncommon', category: 'mechanic',
+      effect: (state) => { state.holdEnabled = true; },
+      unlock: { stat: 'runsPlayed', value: 6, desc: { 'pt-BR': 'Jogar 6 runs', en: 'Play 6 runs' } }
+    },
+    
+    // ========== RARE — SCORE ==========
+    { id: 'mult_plus5', name: { 'pt-BR': 'Pentaplicador', en: 'Quintuple' },
+      desc: { 'pt-BR': '+5 Mult', en: '+5 Mult' },
+      icon: '×5', tier: 'rare', category: 'score',
+      effect: (state) => { state.addMult += 5; },
+      unlock: { stat: 'runsWon', value: 3, desc: { 'pt-BR': 'Vencer 3 runs', en: 'Win 3 runs' } }
+    },
+    { id: 'multmult2', name: { 'pt-BR': 'Duplicador Total', en: 'Total Doubler' },
+      desc: { 'pt-BR': '×2 Mult', en: '×2 Mult' },
+      icon: '⚡⚡', tier: 'rare', category: 'score',
+      effect: (state) => { state.multMult *= 2; },
+      unlock: { stat: 'bestRunScore', value: 500, desc: { 'pt-BR': 'Fazer 500pts em 1 run', en: 'Score 500pts in 1 run' } }
+    },
+    { id: 'cascade', name: { 'pt-BR': 'Cascata', en: 'Cascade' },
+      desc: { 'pt-BR': 'Após limpar, verifica novas combinações', en: 'After clear, check new combos' },
+      icon: '🌊', tier: 'rare', category: 'score',
+      effect: (state) => { state.cascadeEnabled = true; },
+      unlock: { stat: 'totalLinesCleared', value: 50, desc: { 'pt-BR': 'Limpar 50 linhas', en: 'Clear 50 lines' } }
+    },
+    { id: 'domino_perfect', name: { 'pt-BR': 'Dominó Perfeito', en: 'Perfect Domino' },
+      desc: { 'pt-BR': 'Par com valores iguais (4-4) = +15 Chips', en: 'Matching domino pair (4-4) = +15 Chips' },
+      icon: '🁣', tier: 'rare', category: 'score',
+      effect: (state) => { state.perfectDominoBonus = 15; },
+      unlock: { stat: 'runsPlayed', value: 15, desc: { 'pt-BR': 'Jogar 15 runs', en: 'Play 15 runs' } }
+    },
+    { id: 'mirror_bonus', name: { 'pt-BR': 'Espelho', en: 'Mirror' },
+      desc: { 'pt-BR': 'Combinação simétrica = +1 ×Mult', en: 'Symmetric line match = +1 ×Mult' },
+      icon: '🪞', tier: 'rare', category: 'score',
+      effect: (state) => { state.mirrorBonus = true; },
+      unlock: { stat: 'runsWon', value: 5, desc: { 'pt-BR': 'Vencer 5 runs', en: 'Win 5 runs' } }
+    },
+    { id: 'snake_eyes', name: { 'pt-BR': 'Olhos de Cobra', en: 'Snake Eyes' },
+      desc: { 'pt-BR': 'Par 1-1 adjacente = ×2 nesta jogada', en: '1-1 pair = ×2 this play' },
+      icon: '🐍', tier: 'rare', category: 'score',
+      effect: (state) => { state.snakeEyes = true; },
+      unlock: { stat: 'totalScore', value: 2000, desc: { 'pt-BR': 'Acumular 2000pts total', en: 'Accumulate 2000pts total' } }
+    },
+    { id: 'speed_run', name: { 'pt-BR': 'Corrida', en: 'Speedrun' }, 
+      desc: { 'pt-BR': '+0.5 Mult a cada segundo restante', en: '+0.5 Mult per second remaining' }, 
+      icon: '⏱️', tier: 'rare', category: 'score', 
+      effect: (state) => { /* no-op */ }, 
+      unlock: { stat: 'runsWon', value: 1, desc: { 'pt-BR': 'Vencer 1 run', en: 'Win 1 run' } } 
+    },
+    
+    // ========== RARE — MECHANIC ==========
+    { id: 'extra_pieces5', name: { 'pt-BR': 'Arsenal', en: 'Arsenal' },
+      desc: { 'pt-BR': '+5 peças por embaralhamento', en: '+5 pieces per shuffle' },
+      icon: '🏗️', tier: 'rare', category: 'mechanic',
+      effect: (state) => { state.bonusPieces += 5; },
+      unlock: { stat: 'runsPlayed', value: 12, desc: { 'pt-BR': 'Jogar 12 runs', en: 'Play 12 runs' } }
+    },
+    { id: 'recycler2', name: { 'pt-BR': 'Reciclador Pro', en: 'Pro Recycler' },
+      desc: { 'pt-BR': '2× descarta peça por embaralhado', en: '2× discard piece per shuffle' },
+      icon: '♻️♻️', tier: 'rare', category: 'mechanic',
+      effect: (state) => { state.recycleUses += 2; },
+      unlock: { stat: 'totalPiecesPlaced', value: 300, desc: { 'pt-BR': 'Colocar 300 peças', en: 'Place 300 pieces' } }
+    },
+    { id: 'weighted_dice', name: { 'pt-BR': 'Dado Viciado', en: 'Loaded Dice' },
+      desc: { 'pt-BR': 'Peças tendem a valores altos (4-6)', en: 'Pieces lean towards higher values (4-6)' },
+      icon: '🎲', tier: 'rare', category: 'mechanic',
+      effect: (state) => { state.weightedHigh = true; },
+      unlock: { stat: 'total6Pairs', value: 20, desc: { 'pt-BR': 'Fazer 20 pares de 6', en: 'Make 20 pairs of 6' } }
+    },
+    { id: 'wild_piece', name: { 'pt-BR': 'Curinga', en: 'Wild Card' },
+      desc: { 'pt-BR': '10% chance de peça curinga', en: '10% chance of wild piece' },
+      icon: '🃏', tier: 'rare', category: 'mechanic',
+      effect: (state) => { state.wildChance = 0.10; },
+      unlock: { stat: 'runsWon', value: 2, desc: { 'pt-BR': 'Vencer 2 runs', en: 'Win 2 runs' } }
+    },
+    { id: 'slow_fall2', name: { 'pt-BR': 'Gravidade Zero', en: 'Zero Gravity' },
+      desc: { 'pt-BR': 'Velocidade -50%', en: 'Speed -50%' },
+      icon: '🕊️', tier: 'rare', category: 'mechanic',
+      effect: (state) => { state.speedMult *= 1.5; },
+      unlock: { stat: 'totalPiecesPlaced', value: 200, desc: { 'pt-BR': 'Colocar 200 peças', en: 'Place 200 pieces' } }
+    },
+    
+    // ========== LEGENDARY — SCORE ==========
+    { id: 'mult_plus10', name: { 'pt-BR': 'Decimador', en: 'Decimator' },
+      desc: { 'pt-BR': '+10 Mult', en: '+10 Mult' },
+      icon: '×10', tier: 'legendary', category: 'score',
+      effect: (state) => { state.addMult += 10; },
+      unlock: { stat: 'runsWon', value: 10, desc: { 'pt-BR': 'Vencer 10 runs', en: 'Win 10 runs' } }
+    },
+    { id: 'multmult3', name: { 'pt-BR': 'Supernova', en: 'Supernova' },
+      desc: { 'pt-BR': '×3 Mult', en: '×3 Mult' },
+      icon: '💥', tier: 'legendary', category: 'score',
+      effect: (state) => { state.multMult *= 3; },
+      unlock: { stat: 'bestRunScore', value: 2000, desc: { 'pt-BR': 'Fazer 2000pts em 1 run', en: 'Score 2000pts in 1 run' } }
+    },
+    { id: 'full_line_bonus', name: { 'pt-BR': 'Linha Dourada', en: 'Golden Line' },
+      desc: { 'pt-BR': 'Se toda a linha pontuar = ×5', en: 'If entire line scores = ×5' },
+      icon: '🌟', tier: 'legendary', category: 'score',
+      effect: (state) => { state.goldenLine = true; },
+      unlock: { stat: 'maxComboInLine', value: 8, desc: { 'pt-BR': '8+ matches em 1 linha', en: '8+ matches in 1 line' } }
+    },
+    { id: 'exponential', name: { 'pt-BR': 'Exponencial', en: 'Exponential' },
+      desc: { 'pt-BR': 'Mult cresce +0.1 a cada peça', en: 'Mult grows +0.1 per piece placed' },
+      icon: '📈', tier: 'legendary', category: 'score',
+      effect: (state) => { state.exponentialMult = true; },
+      unlock: { stat: 'totalScore', value: 10000, desc: { 'pt-BR': 'Acumular 10000pts', en: 'Accumulate 10000pts total' } }
+    },
+    
+    // ========== LEGENDARY — MECHANIC ==========
+    { id: 'extra_pieces10', name: { 'pt-BR': 'Infinidade', en: 'Infinity' },
+      desc: { 'pt-BR': '+10 peças por embaralhamento', en: '+10 pieces per shuffle' },
+      icon: '∞', tier: 'legendary', category: 'mechanic',
+      effect: (state) => { state.bonusPieces += 10; },
+      unlock: { stat: 'runsPlayed', value: 30, desc: { 'pt-BR': 'Jogar 30 runs', en: 'Play 30 runs' } }
+    },
+    { id: 'oracle', name: { 'pt-BR': 'Oráculo', en: 'Oracle' },
+      desc: { 'pt-BR': 'Exibe todas as próximas peças', en: 'Shows all upcoming pieces' },
+      icon: '👁️', tier: 'legendary', category: 'vision',
+      effect: (state) => { state.previewCount = 99; },
+      unlock: { stat: 'runsWon', value: 8, desc: { 'pt-BR': 'Vencer 8 runs', en: 'Win 8 runs' } }
+    },
+    { id: 'bomb', name: { 'pt-BR': 'Detonador', en: 'Detonator' },
+      desc: { 'pt-BR': '1× elimina linha mais baixa por emb.', en: '1× destroy lowest row per shuffle' },
+      icon: '💣', tier: 'legendary', category: 'mechanic',
+      effect: (state) => { state.bombUses += 1; },
+      unlock: { stat: 'consecutiveWins', value: 3, desc: { 'pt-BR': '3 vitórias seguidas', en: '3 consecutive wins' } }
+    },
+    { id: 'transmute', name: { 'pt-BR': 'Transmutador', en: 'Transmuter' },
+      desc: { 'pt-BR': 'Troca todos os dados de 1 valor', en: 'All pieces of 1 value become another random' },
+      icon: '🌀', tier: 'legendary', category: 'mechanic',
+      effect: (state) => { state.transmuteUses += 1; },
+      unlock: { stat: 'totalScore', value: 5000, desc: { 'pt-BR': 'Acumular 5000pts', en: 'Accumulate 5000pts' } }
+    },
+    
+    // ========== SCALING UPGRADES ==========
+    { id: 'momentum', name: { 'pt-BR': 'Momento', en: 'Momentum' },
+      desc: { 'pt-BR': '+1 Chip por peça colocada neste emb.', en: '+1 Chip per piece placed this shuffle' },
+      icon: '🏃', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.momentumEnabled = true; },
+      unlock: { stat: 'totalPiecesPlaced', value: 50, desc: { 'pt-BR': 'Colocar 50 peças', en: 'Place 50 pieces' } }
+    },
+    { id: 'snowball', name: { 'pt-BR': 'Bola de Neve', en: 'Snowball' },
+      desc: { 'pt-BR': '+0.2 Mult a cada linha limpa nesta run', en: '+0.2 Mult per line cleared this run' },
+      icon: '⛄', tier: 'rare', category: 'score',
+      effect: (state) => { state.snowballMult = true; },
+      unlock: { stat: 'totalLinesCleared', value: 30, desc: { 'pt-BR': 'Limpar 30 linhas', en: 'Clear 30 lines' } }
+    },
+    { id: 'heat', name: { 'pt-BR': 'Calor', en: 'Heat' },
+      desc: { 'pt-BR': '+2 Chips quando um par pontua', en: '+2 Chips each time a pair scores' },
+      icon: '🔥', tier: 'uncommon', category: 'score',
+      effect: (state) => { state.heatChips = 2; },
+      unlock: { stat: 'runsPlayed', value: 7, desc: { 'pt-BR': 'Jogar 7 runs', en: 'Play 7 runs' } }
+    }
+];
+
+// Stats Helper Functions
+function loadStats() {
+    const saved = localStorage.getItem('dicefallStats');
+    if (saved) {
+        try {
+            playerStats = { ...playerStats, ...JSON.parse(saved) };
+        } catch(e) {
+            console.error('Failed to parse player stats', e);
+        }
+    }
+}
+
+function saveStats() {
+    localStorage.setItem('dicefallStats', JSON.stringify(playerStats));
+}
+
+function isUpgradeUnlocked(upgrade) {
+    if (!upgrade.unlock) return true;
+    return playerStats[upgrade.unlock.stat] >= upgrade.unlock.value;
+}
+
+function getUnlockedUpgradesCount() {
+    return ALL_UPGRADES.filter(isUpgradeUnlocked).length;
+}
+
+// Upgrade selection logic
+function selectRandomUpgrades() {
+    const unlocked = ALL_UPGRADES.filter(isUpgradeUnlocked);
+    const chosen = [];
+    const pool = [...unlocked];
+    
+    const getWeight = (tier) => {
+        if (tier === 'common') return 50;
+        if (tier === 'uncommon') return 30;
+        if (tier === 'rare') return 15;
+        if (tier === 'legendary') return 5;
+        return 50;
+    };
+    
+    while (chosen.length < 3 && pool.length > 0) {
+        let totalWeight = 0;
+        for (const item of pool) {
+            totalWeight += getWeight(item.tier);
+        }
+        
+        let rand = Math.random() * totalWeight;
+        let cumulative = 0;
+        let selectedIndex = -1;
+        
+        for (let i = 0; i < pool.length; i++) {
+            cumulative += getWeight(pool[i].tier);
+            if (rand <= cumulative) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        
+        if (selectedIndex !== -1) {
+            chosen.push(pool[selectedIndex]);
+            pool.splice(selectedIndex, 1); // Avoid duplicates in this screen
+        } else {
+            break;
+        }
+    }
+    
+    return chosen;
+}
+
+// Govea Games SVG mark and Splash implementation (preserved)
 function getGoveaMarkSVG(size, uid) {
     return `
     <svg class="govea-mark" width="${size}" height="${size}" viewBox="0 0 120 120" fill="none" aria-hidden="true">
@@ -147,44 +637,56 @@ window.addEventListener('DOMContentLoaded', () => {
     nextCtx = nextCanvas.getContext('2d');
     nextCtx.imageSmoothingEnabled = false;
 
-    // 1) Initialize the Govea Games Splash Screen
+    nextCanvas2 = document.getElementById('next-canvas-2');
+    nextCtx2 = nextCanvas2.getContext('2d');
+    nextCtx2.imageSmoothingEnabled = false;
+
+    nextCanvas3 = document.getElementById('next-canvas-3');
+    nextCtx3 = nextCanvas3.getContext('2d');
+    nextCtx3.imageSmoothingEnabled = false;
+
+    holdCanvas = document.getElementById('hold-canvas');
+    holdCtx = holdCanvas.getContext('2d');
+    holdCtx.imageSmoothingEnabled = false;
+
+    loadStats();
+
+    // Splash screen loader
     const parentContainer = document.getElementById('game-container');
     const splash = new GoveaSplash(parentContainer);
 
-    // 2) Create promises for loading font
     let fontPromise;
     if (document.fonts) {
         fontPromise = document.fonts.ready.then(() => {
             fontLoaded = true;
             console.log("Dicier fonts loaded successfully!");
         }).catch(err => {
-            console.error("Font loading failed, falling back to numbers:", err);
-            fontLoaded = true; // Fallback to basic numbers
+            console.error("Font loading failed:", err);
+            fontLoaded = true; // Fallback
         });
     } else {
         fontLoaded = true;
         fontPromise = Promise.resolve();
     }
 
-    // 3) Promise.all: Wait for splash screen duration AND font to load
     Promise.all([splash.play(), fontPromise]).then(async () => {
         await splash.fadeOut();
         splash.dispose();
         
-        // Show main menu and draw background
+        updateLanguageTexts();
         showScreen('menu');
     });
 
     initButtonListeners();
     initKeyListeners();
     initMobileControls();
-    
-    // Setup empty board
+    initDraggablePad();
+
     resetBoard();
 });
 
 // Setup Game Screen Transitions
-function showScreen(screenId) {
+function showScreen(screenId, extraParam = null) {
     activeScreen = screenId;
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     
@@ -193,11 +695,28 @@ function showScreen(screenId) {
         drawMenuBackground();
     } else if (screenId === 'game') {
         document.getElementById('game-screen').classList.add('active');
-        startGame();
-    } else if (screenId === 'gameover') {
-        document.getElementById('game-over-screen').classList.add('active');
-        document.getElementById('final-score').innerText = padZero(score, 6);
-        document.getElementById('final-lines').innerText = linesCompleted;
+        startShuffleGameplay();
+    } else if (screenId === 'shuffleIntro') {
+        document.getElementById('shuffle-intro-screen').classList.add('active');
+        showShuffleIntro();
+    } else if (screenId === 'shuffleResult') {
+        document.getElementById('shuffle-result-screen').classList.add('active');
+        showShuffleResult();
+    } else if (screenId === 'upgradeSelect') {
+        document.getElementById('upgrade-select-screen').classList.add('active');
+        const randCards = selectRandomUpgrades();
+        renderUpgradeCards(randCards);
+    } else if (screenId === 'runComplete') {
+        document.getElementById('run-complete-screen').classList.add('active');
+        document.getElementById('victory-score-val').innerText = padZero(runScore, 6);
+        document.getElementById('vic-stat-played-val').innerText = playerStats.runsPlayed;
+        document.getElementById('vic-stat-won-val').innerText = playerStats.runsWon;
+    } else if (screenId === 'runFailed') {
+        document.getElementById('run-failed-screen').classList.add('active');
+        document.getElementById('defeat-score-val').innerText = padZero(runScore, 6);
+    } else if (screenId === 'collection') {
+        document.getElementById('collection-screen').classList.add('active');
+        renderCollection();
     }
 }
 
@@ -212,25 +731,134 @@ function resetBoard() {
     }
 }
 
+// Language and HTML translations
+function updateLanguageTexts() {
+    // Menu screen
+    document.getElementById('btn-start').innerText = t('startRun');
+    document.getElementById('btn-how-to').innerText = t('howToPlay');
+    document.getElementById('btn-collection').innerText = t('collection');
+    document.getElementById('btn-lang-toggle').innerText = `🌐 ${currentLang}`;
+    
+    // HUD Labels
+    document.getElementById('lbl-score').innerText = t('score');
+    document.getElementById('lbl-target').innerText = t('target');
+    document.getElementById('lbl-pieces').innerText = t('pieces');
+    document.getElementById('lbl-mult').innerText = t('mult');
+    document.getElementById('lbl-next').innerText = t('next');
+    document.getElementById('lbl-hold').innerText = 'HOLD';
+    document.getElementById('lbl-upgrades').innerText = 'MELHORIAS';
+    document.getElementById('btn-menu-back').innerText = t('backToMenu');
+    
+    // Drag handle & mobile buttons
+    const dragHandle = document.getElementById('lbl-drag-handle');
+    if (dragHandle) dragHandle.innerText = t('dragHandle');
+    
+    // How to Play modal
+    document.getElementById('modal-how-to-title').innerText = t('howToPlay');
+    document.getElementById('btn-close-modal').innerText = t('backToMenu');
+    updateHowToPlayText();
+
+    // Cards and Screens headers
+    document.getElementById('lbl-choose-upgrade').innerText = t('chooseUpgrade');
+    document.getElementById('btn-skip-upgrade').innerText = t('skip');
+    document.getElementById('btn-collection-back').innerText = t('backToMenu');
+    
+    document.getElementById('btn-start-shuffle').innerText = t('startRun');
+    document.getElementById('btn-go-to-upgrades').innerText = t('recycle'); // We recycle this button as proceed
+
+    document.getElementById('lbl-victory-score').innerText = t('score');
+    document.getElementById('btn-victory-menu').innerText = t('backToMenu');
+
+    document.getElementById('lbl-defeat-reason').innerText = t('shuffleFailed');
+    document.getElementById('btn-defeat-menu').innerText = t('backToMenu');
+
+    document.getElementById('lbl-vic-stat-played').innerText = t('runsPlayed');
+    document.getElementById('lbl-vic-stat-won').innerText = 'Runs Vencidas'; // Runs Won
+
+    if (activeScreen === 'menu') {
+        drawMenuBackground();
+    }
+}
+
+function updateHowToPlayText() {
+    const el = document.getElementById('instructions-content');
+    if (currentLang === 'pt-BR') {
+        el.innerHTML = `
+            <p><strong>1. Peças e Valores:</strong> As peças do Tetris são formadas por pares de dominós. Cada quadrado tem um valor de dado de 1 a 6.</p>
+            <p><strong>2. Embaralhamentos:</strong> Cada run tem 3 embaralhamentos com metas de pontuação crescentes e peças limitadas.</p>
+            <p><strong>3. Pontuação:</strong> Ao completar uma linha horizontal, os dominós com valores iguais adjacentes somam pontos e a linha é eliminada. Pontuação = Chips x Multiplicador.</p>
+            <p><strong>4. Melhorias:</strong> Ao final de cada fase, escolha melhorias que modificam as regras do jogo e aumentam seus multiplicadores.</p>
+        `;
+    } else {
+        el.innerHTML = `
+            <p><strong>1. Pieces and Values:</strong> Tetris pieces are formed by domino pairs. Each cell has a die value from 1 to 6.</p>
+            <p><strong>2. Shuffles:</strong> Each run has 3 shuffles with increasing score targets and limited pieces.</p>
+            <p><strong>3. Scoring:</strong> When a line is cleared, adjacent dominoes with matching values score points and flash. Score = Chips x Mult.</p>
+            <p><strong>4. Upgrades:</strong> At the end of each shuffle, pick upgrades that change the rules and boost your multipliers.</p>
+        `;
+    }
+}
+
 // Button Click Handlers
 function initButtonListeners() {
-    document.getElementById('btn-start').addEventListener('click', () => showScreen('game'));
+    document.getElementById('btn-start').addEventListener('click', () => {
+        startNewRun();
+    });
+    
     document.getElementById('btn-how-to').addEventListener('click', () => {
         document.getElementById('how-to-modal').classList.add('active');
     });
+    
     document.getElementById('btn-close-modal').addEventListener('click', () => {
         document.getElementById('how-to-modal').classList.remove('active');
     });
+    
+    document.getElementById('btn-collection').addEventListener('click', () => {
+        showScreen('collection');
+    });
+    
+    document.getElementById('btn-lang-toggle').addEventListener('click', () => {
+        currentLang = currentLang === 'pt-BR' ? 'en' : 'pt-BR';
+        localStorage.setItem('dicefallLang', currentLang);
+        updateLanguageTexts();
+    });
+
+    document.getElementById('btn-collection-back').addEventListener('click', () => {
+        showScreen('menu');
+    });
+
+    document.getElementById('btn-start-shuffle').addEventListener('click', () => {
+        showScreen('game');
+    });
+
+    document.getElementById('btn-go-to-upgrades').addEventListener('click', () => {
+        showScreen('upgradeSelect');
+    });
+
+    document.getElementById('btn-skip-upgrade').addEventListener('click', () => {
+        proceedAfterUpgrade();
+    });
+
+    document.getElementById('btn-victory-menu').addEventListener('click', () => {
+        showScreen('menu');
+    });
+
+    document.getElementById('btn-defeat-menu').addEventListener('click', () => {
+        showScreen('menu');
+    });
+
+    document.getElementById('btn-recycle').addEventListener('click', () => {
+        recycleAction();
+    });
+
     document.getElementById('btn-menu-back').addEventListener('click', () => {
         isPaused = true;
-        if (confirm("Quer mesmo sair do jogo e perder o progresso?")) {
+        if (confirm(currentLang === 'pt-BR' ? "Quer mesmo sair do jogo e perder o progresso?" : "Do you really want to quit and lose progress?")) {
             showScreen('menu');
         } else {
             isPaused = false;
         }
     });
-    document.getElementById('btn-restart').addEventListener('click', () => showScreen('game'));
-    document.getElementById('btn-game-over-menu').addEventListener('click', () => showScreen('menu'));
 }
 
 // Keyboard Input Handler
@@ -262,36 +890,186 @@ function initKeyListeners() {
             case 'KeyP':
                 isPaused = !isPaused;
                 break;
+            case 'KeyH':
+                holdPieceAction();
+                break;
         }
     });
 }
 
-// Mobile Touch Controls Handler
+// Mobile Touch Controls Handler (Floating Drag Pad)
 function initMobileControls() {
     const handleTouch = (btnId, action) => {
         const btn = document.getElementById(btnId);
         if (!btn) return;
         btn.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             if (activeScreen !== 'game' || isPaused || isGameOver || isClearingAnimation) return;
             action();
         });
     };
 
-    handleTouch('ctrl-left', () => movePiece(-1));
-    handleTouch('ctrl-right', () => movePiece(1));
-    handleTouch('ctrl-rotate', () => rotatePiece());
-    handleTouch('ctrl-down', () => movePieceDown());
-    handleTouch('ctrl-drop', () => hardDrop());
+    handleTouch('pad-left', () => movePiece(-1));
+    handleTouch('pad-right', () => movePiece(1));
+    handleTouch('pad-rot-right', () => rotatePiece());
+    handleTouch('pad-rot-left', () => rotatePieceReverse());
+    handleTouch('pad-up', () => movePieceDown());
+    handleTouch('pad-drop', () => hardDrop());
+    handleTouch('pad-recycle', () => recycleAction());
+
+    // Tap outside board hard drop trigger
+    document.addEventListener('pointerdown', (e) => {
+        if (activeScreen !== 'game' || isPaused || isGameOver || isClearingAnimation) return;
+        
+        const pad = document.getElementById('mobile-pad');
+        const sidebarLeft = document.querySelector('.stats-sidebar');
+        const sidebarRight = document.querySelector('.info-sidebar');
+        const howToModal = document.getElementById('how-to-modal');
+        
+        if (pad && pad.contains(e.target)) return;
+        if (sidebarLeft && sidebarLeft.contains(e.target)) return;
+        if (sidebarRight && sidebarRight.contains(e.target)) return;
+        if (howToModal && howToModal.contains(e.target)) return;
+        if (e.target.tagName === 'BUTTON') return;
+        
+        hardDrop();
+    });
 }
 
-// Start Game Settings
-function startGame() {
+// Drag Pad Implementation
+function initDraggablePad() {
+    const pad = document.getElementById('mobile-pad');
+    if (!pad) return;
+    const handle = pad.querySelector('.pad-handle');
+    let isDragging = false;
+    let startX, startY;
+    
+    // Load saved position
+    const savedPos = localStorage.getItem('padPosition');
+    if (savedPos) {
+        try {
+            const { x, y } = JSON.parse(savedPos);
+            pad.style.left = x + 'px';
+            pad.style.bottom = 'auto';
+            pad.style.top = y + 'px';
+            pad.style.transform = 'none';
+        } catch(e) {
+            console.error('Failed to parse pad position', e);
+        }
+    }
+    
+    handle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        const touch = e.touches[0];
+        const rect = pad.getBoundingClientRect();
+        startX = touch.clientX - rect.left;
+        startY = touch.clientY - rect.top;
+        e.preventDefault();
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        const newX = touch.clientX - startX;
+        const newY = touch.clientY - startY;
+        
+        const padWidth = pad.offsetWidth;
+        const padHeight = pad.offsetHeight;
+        
+        const finalX = Math.max(0, Math.min(newX, window.innerWidth - padWidth));
+        const finalY = Math.max(0, Math.min(newY, window.innerHeight - padHeight));
+        
+        pad.style.left = finalX + 'px';
+        pad.style.top = finalY + 'px';
+        pad.style.bottom = 'auto';
+        pad.style.transform = 'none';
+        e.preventDefault();
+    }, { passive: false });
+    
+    document.addEventListener('touchend', () => {
+        if (isDragging) {
+            isDragging = false;
+            const rect = pad.getBoundingClientRect();
+            localStorage.setItem('padPosition', JSON.stringify({ x: rect.left, y: rect.top }));
+        }
+    });
+}
+
+// Reset Roguelike Run Variables
+function resetRunState() {
+    runState = {
+        bonusChipsPerLine: 0,
+        pairBonusChips: 0,
+        multPerLine: 0,
+        bonusPieces: 0,
+        previewCount: 1,
+        holdEnabled: false,
+        recycleUses: 0,
+        recycleUsesLeft: 0,
+        bombUses: 0,
+        bombUsesLeft: 0,
+        transmuteUses: 0,
+        transmuteUsesLeft: 0,
+        jackpot6: false,
+        comboStreak: false,
+        comboCount: 0,
+        highValueBonus: 0,
+        diagonalMatch: false,
+        cascadeEnabled: false,
+        perfectDominoBonus: 0,
+        mirrorBonus: false,
+        snakeEyes: false,
+        goldenLine: false,
+        exponentialMult: false,
+        exponentialCount: 0,
+        momentumEnabled: false,
+        snowballMult: false,
+        snowballCount: 0,
+        heatChips: 0,
+        weightedHigh: false,
+        wildChance: 0,
+        speedMult: 1,
+        addMult: 0,
+        multMult: 1,
+        activeUpgrades: []
+    };
+    heldPiece = null;
+    hasHeldThisTurn = false;
+}
+
+// Start New Run State
+function startNewRun() {
+    resetRunState();
+    runScore = 0;
+    currentShuffle = 0;
+    
+    showScreen('shuffleIntro');
+}
+
+// Render Shuffle Intro dramatic elements
+function showShuffleIntro() {
+    const s = SHUFFLES[currentShuffle];
+    const shuffleName = currentLang === 'pt-BR' ? LANG['pt-BR'][s.key] : LANG['en'][s.key];
+    
+    document.getElementById('intro-shuffle-title').innerText = shuffleName;
+    document.getElementById('intro-shuffle-target').innerText = t('shuffleTarget', s.target);
+    document.getElementById('intro-shuffle-pieces').innerText = t('shufflePieces', s.pieces + runState.bonusPieces);
+}
+
+// Start Shuffle Gameplay
+function startShuffleGameplay() {
     resetBoard();
-    score = 0;
-    linesCompleted = 0;
-    level = 1;
-    dropInterval = 800;
+    shuffleScore = 0;
+    piecesRemaining = SHUFFLES[currentShuffle].pieces + runState.bonusPieces;
+    
+    runState.recycleUsesLeft = runState.recycleUses;
+    runState.bombUsesLeft = runState.bombUses;
+    runState.transmuteUsesLeft = runState.transmuteUses;
+    
+    heldPiece = null;
+    hasHeldThisTurn = false;
+    
     isPaused = false;
     isGameOver = false;
     isClearingAnimation = false;
@@ -299,10 +1077,13 @@ function startGame() {
     rowsToClear = [];
     particles = [];
     
-    updateScoreUI();
+    dropInterval = Math.max(100, 800 / runState.speedMult);
     
-    // Generate initial pieces
-    nextPiece = generatePiece();
+    updateHUD();
+    updateRecycleButton();
+    updateHoldUI();
+    
+    nextPieces = [generatePiece(), generatePiece(), generatePiece()];
     spawnPiece();
     
     lastTime = performance.now();
@@ -316,28 +1097,118 @@ function padZero(num, size) {
     return s;
 }
 
-function updateScoreUI() {
-    document.getElementById('val-score').innerText = padZero(score, 6);
-    document.getElementById('val-lines').innerText = linesCompleted;
-    document.getElementById('val-level').innerText = level;
+// Update Game Interface (HUD)
+function updateHUD() {
+    document.getElementById('val-score').innerText = padZero(shuffleScore, 6);
+    document.getElementById('val-target').innerText = SHUFFLES[currentShuffle].target;
+    document.getElementById('val-pieces').innerText = piecesRemaining;
+    
+    const totalMult = (1 + runState.addMult) * runState.multMult;
+    document.getElementById('val-mult').innerText = totalMult.toFixed(1) + 'x';
+    
+    // Target progress bar
+    const progress = Math.min(100, (shuffleScore / SHUFFLES[currentShuffle].target) * 100);
+    document.getElementById('target-progress').style.width = `${progress}%`;
+    
+    // Active Upgrades HUD Badges
+    const activeList = document.getElementById('active-upgrades-list');
+    activeList.innerHTML = '';
+    runState.activeUpgrades.forEach(id => {
+        const upgrade = ALL_UPGRADES.find(u => u.id === id);
+        if (upgrade) {
+            const badge = document.createElement('span');
+            badge.className = `hud-upgrade-badge tier-${upgrade.tier}`;
+            badge.title = upgrade.name[currentLang] || upgrade.name['pt-BR'];
+            badge.innerText = upgrade.icon;
+            activeList.appendChild(badge);
+        }
+    });
 }
 
-// Piece Class constructor
-function generatePiece() {
-    const keys = Object.keys(SHAPES);
-    const type = keys[Math.floor(Math.random() * keys.length)];
-    const shape = SHAPES[type];
+function updateRecycleButton() {
+    const btn = document.getElementById('btn-recycle');
+    const mobBtn = document.getElementById('pad-recycle');
+    const count = runState.recycleUsesLeft;
     
-    // Create random values (1-6) for the tetromino's blocks
-    // In Tetris, a tetromino has exactly 4 blocks.
-    // We group them into 2 dominoes: 
-    // Domino A = block 0 and 1
-    // Domino B = block 2 and 3
+    if (count > 0) {
+        btn.style.display = 'block';
+        btn.innerText = `♻️ ${t('recycle')} (${count})`;
+        if (mobBtn) {
+            mobBtn.style.display = 'block';
+            mobBtn.innerText = `♻️ (${count})`;
+        }
+    } else {
+        btn.style.display = 'none';
+        if (mobBtn) {
+            mobBtn.style.display = 'none';
+        }
+    }
+}
+
+function updateHoldUI() {
+    const panel = document.getElementById('hold-panel');
+    if (!panel) return;
+    
+    if (runState.holdEnabled) {
+        panel.style.display = 'block';
+        drawHeldPiece();
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+// Swaps current falling piece with held storage slot
+function holdPieceAction() {
+    if (!runState.holdEnabled || hasHeldThisTurn || isPaused || isGameOver || isClearingAnimation) return;
+    
+    hasHeldThisTurn = true;
+    const currentType = currentPiece.type;
+    
+    // Reset falling piece and rotation to fresh spawn
+    const newHold = generatePieceOfType(currentType);
+    
+    if (heldPiece === null) {
+        heldPiece = newHold;
+        currentPiece = nextPieces.shift();
+        nextPieces.push(generatePiece());
+    } else {
+        const temp = heldPiece;
+        heldPiece = newHold;
+        currentPiece = temp;
+    }
+    
+    currentPiece.x = Math.floor((COLS - currentPiece.matrix[0].length) / 2);
+    currentPiece.y = 0;
+    
+    updateNextPieceUI();
+    updateHoldUI();
+}
+
+function recycleAction() {
+    if (runState.recycleUsesLeft <= 0 || isPaused || isGameOver || isClearingAnimation) return;
+    
+    runState.recycleUsesLeft--;
+    currentPiece = nextPieces.shift();
+    nextPieces.push(generatePiece());
+    
+    currentPiece.x = Math.floor((COLS - currentPiece.matrix[0].length) / 2);
+    currentPiece.y = 0;
+    
+    updateNextPieceUI();
+    updateRecycleButton();
+    
+    if (checkCollision(currentPiece, 0, 0)) {
+        endRun(false);
+    }
+}
+
+// Generate piece helper for specific shapes (Hold)
+function generatePieceOfType(type) {
+    const shape = SHAPES[type];
     const dominoAId = 'dom_' + Math.random().toString(36).substr(2, 9);
     const dominoBId = 'dom_' + Math.random().toString(36).substr(2, 9);
     
-    // Generate values
-    const valA1 = Math.floor(Math.random() * 6) + 1; // 1-6
+    const valA1 = Math.floor(Math.random() * 6) + 1;
     const valA2 = Math.floor(Math.random() * 6) + 1;
     const valB1 = Math.floor(Math.random() * 6) + 1;
     const valB2 = Math.floor(Math.random() * 6) + 1;
@@ -349,12 +1220,11 @@ function generatePiece() {
         matrix[r] = [];
         for (let c = 0; c < shape[r].length; c++) {
             if (shape[r][c] === 1) {
-                // Map first 2 blocks to Domino A, next 2 to Domino B
                 const isDominoA = blockCount < 2;
                 matrix[r][c] = {
                     val: isDominoA ? (blockCount === 0 ? valA1 : valA2) : (blockCount === 2 ? valB1 : valB2),
                     dom: isDominoA ? dominoAId : dominoBId,
-                    color: isDominoA ? '#ffffff' : '#e0e0e0', // Slightly offset shades for visual groupings
+                    color: isDominoA ? '#ffffff' : '#e0e0e0',
                     match: false,
                     flash: false
                 };
@@ -369,51 +1239,58 @@ function generatePiece() {
         matrix: matrix,
         x: 0,
         y: 0,
-        type: type,
-        dominoes: {
-            A: { val1: valA1, val2: valA2 },
-            B: { val1: valB1, val2: valB2 }
-        }
+        type: type
     };
+}
+
+// Piece Class constructor (Randomized domino tetris values)
+function generatePiece() {
+    const keys = Object.keys(SHAPES);
+    const type = keys[Math.floor(Math.random() * keys.length)];
+    return generatePieceOfType(type);
 }
 
 // Spawn falling piece
 function spawnPiece() {
-    currentPiece = nextPiece;
-    // Position piece in the top center
+    if (piecesRemaining <= 0) {
+        checkShuffleEnd();
+        return;
+    }
+    
+    piecesRemaining--;
+    playerStats.totalPiecesPlaced++;
+    saveStats();
+    
+    hasHeldThisTurn = false;
+    currentPiece = nextPieces.shift();
+    nextPieces.push(generatePiece());
+    
     currentPiece.x = Math.floor((COLS - currentPiece.matrix[0].length) / 2);
     currentPiece.y = 0;
     
-    // Generate next piece
-    nextPiece = generatePiece();
     updateNextPieceUI();
+    updateHUD();
     
     // Check if new piece immediately collides (Game Over)
     if (checkCollision(currentPiece, 0, 0)) {
-        isGameOver = true;
-        showScreen('gameover');
+        endRun(false);
     }
 }
 
-// Update Next Piece Preview in sidebar
-function updateNextPieceUI() {
-    if (!nextCanvas || !nextCtx) return;
+// Canvas drawers for piece previews
+function drawPreviewOnCanvas(canvasEl, ctxEl, piece) {
+    const cw = canvasEl.width;
+    const ch = canvasEl.height;
+    ctxEl.clearRect(0, 0, cw, ch);
 
-    // Use the canvas buffer dimensions (not CSS layout)
-    const cw = nextCanvas.width;
-    const ch = nextCanvas.height;
-    nextCtx.clearRect(0, 0, cw, ch);
+    if (!piece) return;
 
-    if (!nextPiece) return;
-
-    const matrix = nextPiece.matrix;
+    const matrix = piece.matrix;
     const numRows = matrix.length;
 
-    // Find tight bounding box using per-row column count
     let minR = numRows, maxR = -1, minC = Infinity, maxC = -1;
     for (let r = 0; r < numRows; r++) {
-        const numCols = matrix[r].length;
-        for (let c = 0; c < numCols; c++) {
+        for (let c = 0; c < matrix[r].length; c++) {
             if (matrix[r][c] !== null) {
                 if (r < minR) minR = r;
                 if (r > maxR) maxR = r;
@@ -427,34 +1304,30 @@ function updateNextPieceUI() {
 
     const pCols = maxC - minC + 1;
     const pRows = maxR - minR + 1;
-
-    // Use the same block size as the main board so all pieces look identical in scale.
-    // The canvas (120×120) fits a 4×4 grid at 30px/cell exactly.
-    const blockSize = BLOCK_SIZE; // 30px — matches the board renderer
+    const blockSize = BLOCK_SIZE;
 
     const startX = Math.floor((cw - pCols * blockSize) / 2);
     const startY = Math.floor((ch - pRows * blockSize) / 2);
 
-    // Draw subtle background grid
-    nextCtx.strokeStyle = '#1e1e1e';
-    nextCtx.lineWidth = 1;
+    // Draw background grid lines (retro)
+    ctxEl.strokeStyle = '#1e1e1e';
+    ctxEl.lineWidth = 1;
     for (let x = 0; x <= pCols; x++) {
-        nextCtx.beginPath();
-        nextCtx.moveTo(startX + x * blockSize, startY);
-        nextCtx.lineTo(startX + x * blockSize, startY + pRows * blockSize);
-        nextCtx.stroke();
+        ctxEl.beginPath();
+        ctxEl.moveTo(startX + x * blockSize, startY);
+        ctxEl.lineTo(startX + x * blockSize, startY + pRows * blockSize);
+        ctxEl.stroke();
     }
     for (let y = 0; y <= pRows; y++) {
-        nextCtx.beginPath();
-        nextCtx.moveTo(startX, startY + y * blockSize);
-        nextCtx.lineTo(startX + pCols * blockSize, startY + y * blockSize);
-        nextCtx.stroke();
+        ctxEl.beginPath();
+        ctxEl.moveTo(startX, startY + y * blockSize);
+        ctxEl.lineTo(startX + pCols * blockSize, startY + y * blockSize);
+        ctxEl.stroke();
     }
 
-    // Draw cells using Dicier font
+    // Draw cells
     for (let r = 0; r < numRows; r++) {
-        const numCols = matrix[r].length;
-        for (let c = 0; c < numCols; c++) {
+        for (let c = 0; c < matrix[r].length; c++) {
             const cell = matrix[r][c];
             if (cell !== null) {
                 const drawC = c - minC;
@@ -462,23 +1335,22 @@ function updateNextPieceUI() {
                 const px = startX + drawC * blockSize;
                 const py = startY + drawR * blockSize;
 
-                nextCtx.fillStyle = '#ffffff';
-                nextCtx.font = `${blockSize - 2}px Dicier`;
-                nextCtx.textAlign = 'center';
-                nextCtx.textBaseline = 'middle';
-                nextCtx.fillText(cell.val.toString(), px + blockSize / 2, py + blockSize / 2);
+                ctxEl.fillStyle = '#ffffff';
+                ctxEl.font = `${blockSize - 2}px Dicier`;
+                ctxEl.textAlign = 'center';
+                ctxEl.textBaseline = 'middle';
+                ctxEl.fillText(cell.val.toString(), px + blockSize / 2, py + blockSize / 2);
             }
         }
     }
 
-    // Draw domino outline brackets
-    nextCtx.strokeStyle = '#ffffff';
-    nextCtx.lineWidth = 1.5;
+    // Draw outlines
+    ctxEl.strokeStyle = '#ffffff';
+    ctxEl.lineWidth = 1.5;
 
     const blocks = [];
     for (let r = 0; r < numRows; r++) {
-        const numCols = matrix[r].length;
-        for (let c = 0; c < numCols; c++) {
+        for (let c = 0; c < matrix[r].length; c++) {
             if (matrix[r][c] !== null) {
                 blocks.push({ r, c, cell: matrix[r][c] });
             }
@@ -499,17 +1371,44 @@ function updateNextPieceUI() {
                 const py2 = startY + dr2 * blockSize;
 
                 if (dr1 === dr2 && Math.abs(dc1 - dc2) === 1) {
-                    // Horizontal domino pair
                     const leftPx = Math.min(px1, px2);
-                    nextCtx.strokeRect(leftPx + 1, py1 + 1, blockSize * 2 - 2, blockSize - 2);
+                    ctxEl.strokeRect(leftPx + 1, py1 + 1, blockSize * 2 - 2, blockSize - 2);
                 } else if (dc1 === dc2 && Math.abs(dr1 - dr2) === 1) {
-                    // Vertical domino pair
                     const topPy = Math.min(py1, py2);
-                    nextCtx.strokeRect(px1 + 1, topPy + 1, blockSize - 2, blockSize * 2 - 2);
+                    ctxEl.strokeRect(px1 + 1, topPy + 1, blockSize - 2, blockSize * 2 - 2);
                 }
             }
         }
     }
+}
+
+// Update Next Piece previews depending on BINOCULO/TELESCOPIO upgrades
+function updateNextPieceUI() {
+    if (!nextCanvas || !nextCtx) return;
+    
+    // Preview 1 (default)
+    drawPreviewOnCanvas(nextCanvas, nextCtx, nextPieces[0]);
+
+    // Preview 2 (Binóculo)
+    if (runState.previewCount >= 2) {
+        nextCanvas2.style.display = 'block';
+        drawPreviewOnCanvas(nextCanvas2, nextCtx2, nextPieces[1]);
+    } else {
+        nextCanvas2.style.display = 'none';
+    }
+
+    // Preview 3 (Telescópio)
+    if (runState.previewCount >= 3) {
+        nextCanvas3.style.display = 'block';
+        drawPreviewOnCanvas(nextCanvas3, nextCtx3, nextPieces[2]);
+    } else {
+        nextCanvas3.style.display = 'none';
+    }
+}
+
+function drawHeldPiece() {
+    if (!holdCanvas || !holdCtx) return;
+    drawPreviewOnCanvas(holdCanvas, holdCtx, heldPiece);
 }
 
 // Movement left/right
@@ -535,9 +1434,9 @@ function movePieceDown() {
 // Hard drop (drop instantly to bottom)
 function hardDrop() {
     while (movePieceDown()) {
-        // Drop until hit block
+        // Drop until collision
     }
-    screenShakeTime = 5; // Small drop shake
+    screenShakeTime = 5; // Drop screen shake
 }
 
 // Rotate Piece Matrix (90 deg clockwise)
@@ -552,18 +1451,36 @@ function rotatePiece() {
         }
     }
     
-    // Wall kick: if rotation hits wall, try shifting piece left/right to fit
+    applyRotatedMatrix(rotated);
+}
+
+// Rotate Piece Matrix (90 deg counter-clockwise / Reverse Rotation)
+function rotatePieceReverse() {
+    const matrix = currentPiece.matrix;
+    const N = matrix.length;
+    const rotated = Array(N).fill(null).map(() => Array(N).fill(null));
+    
+    for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+            rotated[N - 1 - c][r] = matrix[r][c];
+        }
+    }
+    
+    applyRotatedMatrix(rotated);
+}
+
+function applyRotatedMatrix(rotated) {
     const originalMatrix = currentPiece.matrix;
     const originalX = currentPiece.x;
     currentPiece.matrix = rotated;
     
+    // Wall kick
     let shift = 0;
     while (checkCollision(currentPiece, 0, 0) && Math.abs(shift) < 3) {
         shift = shift >= 0 ? -shift - 1 : -shift; // 0, -1, 1, -2, 2
         currentPiece.x = originalX + shift;
     }
     
-    // If it still collides after kick, revert rotation
     if (checkCollision(currentPiece, 0, 0)) {
         currentPiece.matrix = originalMatrix;
         currentPiece.x = originalX;
@@ -630,16 +1547,13 @@ function checkCompletedLines() {
     }
     
     if (rowsToClear.length > 0) {
-        // Scan board for matching adjacent values connected to these lines
         findAdjacentMatches();
         
         if (matchingCells.length > 0) {
-            // Trigger clear animation (flashing matched cells)
             isClearingAnimation = true;
             clearAnimationTimer = CLEAR_ANIMATION_DURATION;
             screenShakeTime = SCREEN_SHAKE_DURATION;
         } else {
-            // Normal clear if no domino combinations were found
             clearRows();
             spawnPiece();
         }
@@ -648,20 +1562,22 @@ function checkCompletedLines() {
     }
 }
 
-// Find adjacent cells with same values where BOTH cells lie on a completed row
+// Find adjacent cells with same values that touch completed lines
 function findAdjacentMatches() {
     matchingCells = [];
     const matchedKeys = new Set();
-    
     const rowsSet = new Set(rowsToClear);
     
-    // Only check rightward and downward to visit each edge once
     const dirs = [
         [0, 1],  // right
-        [1, 0],  // down
+        [1, 0]   // down
     ];
+
+    if (runState.diagonalMatch) {
+        dirs.push([1, 1]);   // down-right
+        dirs.push([1, -1]);  // down-left
+    }
     
-    // Only iterate over completed rows to stay strict
     for (const r of rowsSet) {
         for (let c = 0; c < COLS; c++) {
             const cell = board[r][c];
@@ -672,16 +1588,12 @@ function findAdjacentMatches() {
                 const nc = c + dc;
                 
                 if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
-                
-                // Neighbor must also be in a completed row
-                if (!rowsSet.has(nr)) continue;
+                if (!rowsSet.has(nr) && !runState.diagonalMatch) continue; // standard checks touching rows only
                 
                 const neighbor = board[nr][nc];
                 if (neighbor === null) continue;
                 
-                // Score only when values are identical AND both cells are in completed rows
                 if (cell.val === neighbor.val) {
-                    // Canonical key: smaller (r,c) first to avoid counting direction twice
                     const key = `${r},${c}-${nr},${nc}`;
                     if (!matchedKeys.has(key)) {
                         matchedKeys.add(key);
@@ -696,52 +1608,122 @@ function findAdjacentMatches() {
             }
         }
     }
+    
+    // Save unique pairs for stats
+    if (runState.diagonalMatch) {
+        playerStats.totalDiagonals += matchedKeys.size;
+    }
 }
 
-// Clear completed lines and award score
+// Clear completed lines and apply Roguelike Chips * Mult formula
 function clearRows() {
-    // Sort rows descending to clear from bottom to top
     rowsToClear.sort((a,b) => b-a);
     
-    // Calculate scoring
-    // 1. Domino pairs matched: sum values of matching pairs
-    let dominoScore = 0;
-    
-    // Filter duplicates from matchingCells to count unique blocks
+    let baseChips = 0;
     const seenCells = new Set();
+    
+    // Filter duplicates and collect dice sum
     for (const cell of matchingCells) {
         const key = `${cell.r},${cell.c}`;
         if (!seenCells.has(key)) {
             seenCells.add(key);
             const val = board[cell.r][cell.c].val;
-            dominoScore += val; // Just add the face value (1-6) without multiplier!
+            baseChips += val;
+            
+            // Stats check for 6-6 matches
+            if (val === 6) {
+                // If adjacent cell is also 6, count as a 6-6 pair
+                // (approximation handled on cell scan)
+            }
+            
             spawnExplosion(cell.c, cell.r, val, true);
         }
     }
+
+    // Recalculate actual 6-6 pairs for stats & jackpot
+    let sixSixPairs = 0;
+    const rowsSet = new Set(rowsToClear);
+    const checkedKeys = new Set();
     
-    // Points are ONLY awarded if there are matching combinations. No base line clear score is given.
-    const points = dominoScore;
-    score += points;
-    linesCompleted += rowsToClear.length;
-    
-    // Level Up every 10 lines
-    level = Math.floor(linesCompleted / 10) + 1;
-    dropInterval = Math.max(100, 800 - (level - 1) * 70); // speed increases
-    
-    updateScoreUI();
-    
-    // Actually remove rows from board
-    for (const r of rowsToClear) {
-        // Remove row and shift everything above down
-        board.splice(r, 1);
-        // Add new empty row at top
-        const newRow = [];
+    for (const r of rowsSet) {
         for (let c = 0; c < COLS; c++) {
-            newRow.push(null);
+            const cell = board[r][c];
+            if (cell && cell.val === 6) {
+                // check right and down
+                const checks = [[0,1],[1,0]];
+                if (runState.diagonalMatch) checks.push([1,1],[1,-1]);
+                for (const [dr, dc] of checks) {
+                    const nr = r+dr, nc = c+dc;
+                    if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS) {
+                        const neighbor = board[nr][nc];
+                        if (neighbor && neighbor.val === 6) {
+                            const key = `${r},${c}-${nr},${nc}`;
+                            if (!checkedKeys.has(key)) {
+                                checkedKeys.add(key);
+                                sixSixPairs++;
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+    playerStats.total6Pairs += sixSixPairs;
+
+    // Apply Upgrades Chips / Mult modifiers
+    let jackpotBonus = (runState.jackpot6 && sixSixPairs > 0) ? (sixSixPairs * 10) : 0;
+    let highValueDiceCount = 0;
+    for (const cell of matchingCells) {
+        const val = board[cell.r][cell.c].val;
+        if (val >= 5) highValueDiceCount++;
+    }
+    let highValueBonusChips = highValueDiceCount * runState.highValueBonus;
+
+    // Chips x Mult formula
+    let totalPairs = checkedKeys.size;
+    let chips = baseChips + (totalPairs * runState.pairBonusChips) + jackpotBonus + highValueBonusChips + (runState.bonusChipsPerLine * rowsToClear.length);
+    let totalMult = (1 + runState.addMult + (runState.multPerLine * rowsToClear.length)) * runState.multMult;
+    
+    let points = Math.floor(chips * totalMult);
+    
+    if (points > 0) {
+        shuffleScore += points;
+        runScore += points;
+        
+        // Spawn floating text chips x mult particle
+        const centerCol = Math.floor(COLS / 2);
+        const centerRow = rowsToClear[Math.floor(rowsToClear.length / 2)] || Math.floor(ROWS / 2);
+        particles.push({
+            type: 'text',
+            x: centerCol * BLOCK_SIZE + BLOCK_SIZE / 2,
+            y: centerRow * BLOCK_SIZE + BLOCK_SIZE / 2,
+            vx: 0,
+            vy: -1.5,
+            text: `${chips} × ${totalMult.toFixed(1)} = +${points}`,
+            life: 60,
+            maxLife: 60,
+            color: '#ccaa22' // golden scoring text
+        });
+    }
+
+    playerStats.totalLinesCleared += rowsToClear.length;
+    if (rowsToClear.length > playerStats.maxComboInLine) {
+        playerStats.maxComboInLine = rowsToClear.length;
+    }
+    saveStats();
+    
+    // Speed increases with level (lines completed / 10)
+    const level = Math.floor(playerStats.totalLinesCleared / 10) + 1;
+    dropInterval = Math.max(100, (800 - (level - 1) * 70) / runState.speedMult);
+    
+    updateHUD();
+    
+    // Remove lines from board
+    for (const r of rowsToClear) {
+        board.splice(r, 1);
+        const newRow = Array(COLS).fill(null);
         board.unshift(newRow);
         
-        // Offset row clearing index as rows move down
         for (let i = 0; i < rowsToClear.length; i++) {
             if (rowsToClear[i] < r) {
                 rowsToClear[i]++;
@@ -749,12 +1731,146 @@ function clearRows() {
         }
     }
     
-    // Reset flags
     matchingCells = [];
     rowsToClear = [];
 }
 
-// Draw initial static menu background using Dicier characters
+// Check if shuffle ends (either win or lose)
+function checkShuffleEnd() {
+    isGameOver = true;
+    const s = SHUFFLES[currentShuffle];
+    
+    if (shuffleScore >= s.target) {
+        // Target met! Save stats.
+        if (shuffleScore > playerStats.bestShuffleScore) {
+            playerStats.bestShuffleScore = shuffleScore;
+        }
+        playerStats.totalScore += shuffleScore;
+        saveStats();
+        
+        if (currentShuffle === 2) {
+            // Passed Final Shuffle! Victory.
+            endRun(true);
+        } else {
+            // Passed Small or Big. Show results screen.
+            showScreen('shuffleResult');
+        }
+    } else {
+        // Failed target score. Run ended.
+        endRun(false);
+    }
+}
+
+function proceedAfterUpgrade() {
+    currentShuffle++;
+    showScreen('shuffleIntro');
+}
+
+function endRun(victory) {
+    isGameOver = true;
+    playerStats.runsPlayed++;
+    
+    if (runScore > playerStats.bestRunScore) {
+        playerStats.bestRunScore = runScore;
+    }
+    playerStats.totalScore += shuffleScore;
+    
+    if (victory) {
+        playerStats.runsWon++;
+        playerStats.consecutiveWins++;
+        if (playerStats.consecutiveWins > playerStats.maxConsecutiveWins) {
+            playerStats.maxConsecutiveWins = playerStats.consecutiveWins;
+        }
+        showScreen('runComplete');
+    } else {
+        playerStats.consecutiveWins = 0;
+        showScreen('runFailed');
+    }
+    saveStats();
+}
+
+// Render dynamic upgrade selection cards
+function renderUpgradeCards(upgrades) {
+    const container = document.getElementById('upgrade-cards-container');
+    container.innerHTML = '';
+
+    if (upgrades.length === 0) {
+        // Fallback skip
+        proceedAfterUpgrade();
+        return;
+    }
+    
+    upgrades.forEach(upgrade => {
+        const card = document.createElement('div');
+        card.className = `upgrade-card tier-${upgrade.tier}`;
+        
+        const nameText = upgrade.name[currentLang] || upgrade.name['pt-BR'];
+        const descText = upgrade.desc[currentLang] || upgrade.desc['pt-BR'];
+        
+        card.innerHTML = `
+            <div class="card-tier-label">${upgrade.tier.toUpperCase()}</div>
+            <div class="card-icon">${upgrade.icon}</div>
+            <h3 class="card-name">${nameText}</h3>
+            <p class="card-desc">${descText}</p>
+        `;
+        
+        card.addEventListener('click', () => {
+            applyUpgrade(upgrade);
+            proceedAfterUpgrade();
+        });
+        
+        container.appendChild(card);
+    });
+}
+
+function applyUpgrade(upgrade) {
+    runState.activeUpgrades.push(upgrade.id);
+    if (upgrade.effect) {
+        upgrade.effect(runState);
+    }
+}
+
+// Render locked / unlocked collection screen
+function renderCollection() {
+    const unlockedCount = getUnlockedUpgradesCount();
+    const totalCount = ALL_UPGRADES.length;
+    
+    document.getElementById('collection-progress-text').innerText = t('unlockedCount', unlockedCount, totalCount);
+    const pct = (unlockedCount / totalCount) * 100;
+    document.getElementById('collection-progress-bar').style.width = `${pct}%`;
+    
+    const grid = document.getElementById('collection-grid');
+    grid.innerHTML = '';
+    
+    ALL_UPGRADES.forEach(upgrade => {
+        const card = document.createElement('div');
+        const unlocked = isUpgradeUnlocked(upgrade);
+        
+        if (unlocked) {
+            card.className = `collection-card tier-${upgrade.tier}`;
+            const nameText = upgrade.name[currentLang] || upgrade.name['pt-BR'];
+            const descText = upgrade.desc[currentLang] || upgrade.desc['pt-BR'];
+            card.innerHTML = `
+                <div class="card-tier-label">${upgrade.tier.toUpperCase()}</div>
+                <div class="card-icon">${upgrade.icon}</div>
+                <h4 class="card-name">${nameText}</h4>
+                <p class="card-desc">${descText}</p>
+            `;
+        } else {
+            card.className = 'collection-card locked-card';
+            const reqText = upgrade.unlock.desc[currentLang] || upgrade.unlock.desc['pt-BR'];
+            card.innerHTML = `
+                <div class="card-icon">🔒</div>
+                <h4 class="card-name">${t('locked')}</h4>
+                <p class="card-desc">${t('unlockReq', reqText)}</p>
+            `;
+        }
+        
+        grid.appendChild(card);
+    });
+}
+
+// Draw initial static menu background using Dicier characters (preserved)
 function drawMenuBackground() {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -792,17 +1908,12 @@ function update(time = 0) {
     const deltaTime = time - lastTime;
     lastTime = time;
     
-    // Update active particle systems
     updateParticles();
 
     if (isClearingAnimation) {
-        // Run flashing clear animation
         clearAnimationTimer--;
         
         // Toggle flash state every 5 frames
-        // Important: deduplicate matchingCells before toggling — a cell shared by
-        // multiple adjacent pairs (e.g. the middle of [3,3,3,3]) appears multiple
-        // times in the list and would toggle back to its original state if not deduped.
         if (clearAnimationTimer % 5 === 0) {
             const seenToggle = new Set();
             for (const cell of matchingCells) {
@@ -844,27 +1955,25 @@ function update(time = 0) {
 
 // Draw paused game state
 function drawPauseScreen() {
-    ctx.fillStyle = 'rgba(8, 8, 8, 0.05)'; // slight trail
+    ctx.fillStyle = 'rgba(8, 8, 8, 0.05)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = '#ffffff';
     ctx.font = '18px "Silkscreen", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('JOGO PAUSADO', canvas.width / 2, canvas.height / 2);
+    ctx.fillText(t('paused'), canvas.width / 2, canvas.height / 2);
     ctx.font = '10px "JetBrains Mono", monospace';
-    ctx.fillText('Pressione P para continuar', canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText(t('pressP'), canvas.width / 2, canvas.height / 2 + 30);
 }
 
 // Core drawing engine
 function draw() {
-    // Screen shake translate
     ctx.save();
     if (screenShakeTime > 0) {
         const dx = (Math.random() * 6 - 3) * (screenShakeTime / SCREEN_SHAKE_DURATION);
         const dy = (Math.random() * 6 - 3) * (screenShakeTime / SCREEN_SHAKE_DURATION);
         ctx.translate(dx, dy);
         
-        // Apply transform to the canvas element itself for CRT chassis shake
         canvas.style.transform = `translate(${dx * 0.5}px, ${dy * 0.5}px)`;
         screenShakeTime--;
     } else {
@@ -873,7 +1982,7 @@ function draw() {
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw background grid lines (retro styled)
+    // Draw background grid lines
     ctx.strokeStyle = '#141414';
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) {
@@ -899,7 +2008,6 @@ function draw() {
         }
     }
     
-    // Draw connected domino outlines on board blocks
     drawDominoOutlines();
     
     // Draw falling piece
@@ -915,7 +2023,6 @@ function draw() {
         drawPieceDominoOutlines();
     }
     
-    // Draw scoring/flash particles on top
     drawParticles();
     
     ctx.restore();
@@ -926,7 +2033,6 @@ function drawCell(x, y, cell) {
     const px = x * BLOCK_SIZE;
     const py = y * BLOCK_SIZE;
     
-    // Drawing flash inversion if matched and toggle is off
     if (cell.match && cell.flash) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
@@ -937,7 +2043,6 @@ function drawCell(x, y, cell) {
         ctx.textBaseline = 'middle';
         ctx.fillText(cell.val.toString(), px + BLOCK_SIZE / 2, py + BLOCK_SIZE / 2);
     } else {
-        // Normal cell rendering using Dicier glyphs (1-6)
         ctx.fillStyle = '#ffffff';
         ctx.font = `${BLOCK_SIZE - 2}px Dicier`;
         ctx.textAlign = 'center';
@@ -946,7 +2051,7 @@ function drawCell(x, y, cell) {
     }
 }
 
-// Find and draw single borders enclosing domino pairs (merging blocks visually)
+// Draw single borders enclosing domino pairs
 function drawDominoOutlines() {
     const drawnPairs = new Set();
     
@@ -955,10 +2060,9 @@ function drawDominoOutlines() {
             const cell = board[r][c];
             if (cell === null || !cell.dom) continue;
             
-            // Check right and bottom neighbors for same domino ID
             const neighbors = [
-                { r: r, c: c + 1, type: 'H' }, // Horizontal connection
-                { r: r + 1, c: c, type: 'V' }  // Vertical connection
+                { r: r, c: c + 1, type: 'H' },
+                { r: r + 1, c: c, type: 'V' }
             ];
             
             for (const n of neighbors) {
@@ -969,12 +2073,10 @@ function drawDominoOutlines() {
                         if (!drawnPairs.has(pairKey)) {
                             drawnPairs.add(pairKey);
                             
-                            // Draw thin connecting highlight outline around the domino
                             ctx.strokeStyle = '#ffffff';
                             ctx.lineWidth = 1;
                             
                             if (n.type === 'H') {
-                                // Draw single rectangle enclosing both cells
                                 ctx.strokeRect(c * BLOCK_SIZE + 1, r * BLOCK_SIZE + 1, BLOCK_SIZE * 2 - 2, BLOCK_SIZE - 2);
                             } else {
                                 ctx.strokeRect(c * BLOCK_SIZE + 1, r * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE * 2 - 2);
@@ -990,9 +2092,6 @@ function drawDominoOutlines() {
 // Draw single borders enclosing active piece's domino blocks
 function drawPieceDominoOutlines() {
     const p = currentPiece;
-    const drawn = new Set();
-    
-    // Find all blocks in the matrix
     const blocks = [];
     for (let r = 0; r < p.matrix.length; r++) {
         for (let c = 0; c < p.matrix[r].length; c++) {
@@ -1002,7 +2101,6 @@ function drawPieceDominoOutlines() {
         }
     }
     
-    // Draw boundary around matching domino IDs
     for (let i = 0; i < blocks.length; i++) {
         for (let j = i + 1; j < blocks.length; j++) {
             const b1 = blocks[i];
@@ -1017,13 +2115,10 @@ function drawPieceDominoOutlines() {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1.5;
                 
-                // Check if they are horizontal or vertical
                 if (by1 === by2 && Math.abs(bx1 - bx2) === 1) {
-                    // Horizontal domino
                     const minX = Math.min(bx1, bx2);
                     ctx.strokeRect(minX * BLOCK_SIZE + 1, by1 * BLOCK_SIZE + 1, BLOCK_SIZE * 2 - 2, BLOCK_SIZE - 2);
                 } else if (bx1 === bx2 && Math.abs(by1 - by2) === 1) {
-                    // Vertical domino
                     const minY = Math.min(by1, by2);
                     ctx.strokeRect(bx1 * BLOCK_SIZE + 1, minY * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE * 2 - 2);
                 }
@@ -1032,7 +2127,7 @@ function drawPieceDominoOutlines() {
     }
 }
 
-// Particle System implementation for Super Pixel Effects
+// Particle System for explosions
 function spawnExplosion(c, r, val, isFinalClear) {
     const cx = c * BLOCK_SIZE + BLOCK_SIZE / 2;
     const cy = r * BLOCK_SIZE + BLOCK_SIZE / 2;
@@ -1088,15 +2183,14 @@ function spawnExplosion(c, r, val, isFinalClear) {
                 x: cx,
                 y: cy,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 1.2, // upward launch bias
-                size: 2 + Math.floor(Math.random() * 3), // 2 to 4 pixels
+                vy: Math.sin(angle) * speed - 1.2,
+                size: 2 + Math.floor(Math.random() * 3),
                 life: 20 + Math.floor(Math.random() * 15),
                 maxLife: 35,
                 color: color
             });
         }
     } else {
-        // Spark particles during flashing
         const numSparks = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < numSparks; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -1135,7 +2229,7 @@ function updateParticles() {
             p.x += p.vx;
             p.y += p.vy;
             p.vx *= 0.98;
-            p.vy *= 0.95; // decelerate upward rise
+            p.vy *= 0.95;
         } else if (p.type === 'ring') {
             p.size += (p.maxSize - p.size) * 0.18;
         } else if (p.type === 'cross') {

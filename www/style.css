@@ -615,3 +615,426 @@ body::after {
 @keyframes gv-shine {
     to { transform: translateX(130%); }
 }
+
+/* Progress Bar styling */
+.progress-bar-container {
+    width: 100%;
+    max-width: 400px;
+    height: 12px;
+    border: 2px solid var(--border-color);
+    background-color: #111;
+    margin: 10px 0;
+}
+.progress-bar-container.mini {
+    height: 8px;
+    margin: 4px 0 0 0;
+}
+.progress-bar {
+    height: 100%;
+    background-color: var(--fg-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Dramatic Titles */
+.shuffle-title-dramatic, .result-title-dramatic, .victory-title-dramatic, .defeat-title-dramatic {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.victory-title-dramatic {
+    color: #ccaa22;
+    text-shadow: 0 0 8px rgba(204, 170, 34, 0.4);
+}
+.defeat-title-dramatic {
+    color: #cc4444;
+}
+
+/* Intro and Result Panels */
+.intro-panel, .result-panel, .victory-panel, .defeat-panel {
+    border: 3px double var(--border-color);
+    padding: 20px 40px;
+    background-color: #0b0b0b;
+    margin-bottom: 30px;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+}
+.intro-stat, .result-stat {
+    font-size: 18px;
+    margin: 10px 0;
+    font-family: var(--font-main);
+}
+
+/* Cards Selection Screen */
+.cards-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 750px;
+    margin-bottom: 30px;
+}
+.upgrade-card {
+    flex: 1;
+    max-width: 220px;
+    border: 3px solid var(--border-color);
+    background-color: #0d0d0d;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    box-shadow: 4px 4px 0 var(--fg-color);
+}
+.upgrade-card:hover {
+    background-color: var(--fg-color);
+    color: var(--bg-color);
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px var(--fg-color);
+}
+.upgrade-card:hover .card-desc {
+    color: var(--bg-color);
+}
+.card-tier-label {
+    font-family: var(--font-heading);
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+.card-icon {
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+.card-name {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    margin-bottom: 10px;
+    line-height: 1.2;
+}
+.card-desc {
+    font-family: var(--font-main);
+    font-size: 11px;
+    color: var(--accent-color);
+    line-height: 1.4;
+}
+
+/* Tier Specific Colors & Animations */
+.tier-common { border-color: #ffffff; }
+.tier-uncommon { border-color: #4488cc; }
+.tier-uncommon .card-tier-label { color: #4488cc; }
+.tier-rare { border-color: #9944cc; }
+.tier-rare .card-tier-label { color: #9944cc; }
+.tier-legendary { border-color: #ccaa22; }
+.tier-legendary .card-tier-label { color: #ccaa22; }
+.upgrade-card.tier-legendary {
+    animation: legendary-glow 2s infinite ease-in-out;
+}
+@keyframes legendary-glow {
+    0% { box-shadow: 4px 4px 0 #ccaa22, 0 0 4px #ccaa22; }
+    50% { box-shadow: 4px 4px 0 #ccaa22, 0 0 16px #ccaa22; }
+    100% { box-shadow: 4px 4px 0 #ccaa22, 0 0 4px #ccaa22; }
+}
+
+/* Collection Screen */
+.collection-progress-container {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.progress-label {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+.collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 760px;
+    height: 380px;
+    overflow-y: auto;
+    border: 2px solid var(--border-color);
+    padding: 15px;
+    background-color: #080808;
+    margin-bottom: 20px;
+}
+/* Custom retro scrollbar */
+.collection-grid::-webkit-scrollbar {
+    width: 8px;
+}
+.collection-grid::-webkit-scrollbar-track {
+    background: #0d0d0d;
+    border-left: 2px solid var(--border-color);
+}
+.collection-grid::-webkit-scrollbar-thumb {
+    background: var(--fg-color);
+}
+.collection-card {
+    border: 2px solid var(--border-color);
+    background-color: #0d0d0d;
+    padding: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 11px;
+}
+.collection-card.tier-legendary {
+    animation: legendary-glow 2s infinite ease-in-out;
+}
+.collection-card .card-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+.collection-card .card-name {
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+.collection-card .card-desc {
+    font-size: 9px;
+}
+.locked-card {
+    background-color: #060606;
+    border: 2px dashed #444;
+    color: #444;
+}
+.locked-card .card-icon {
+    color: #444;
+}
+.locked-card .card-desc {
+    color: #444;
+}
+
+/* Mobile Pad Styles */
+.mobile-pad {
+    display: none; /* hidden by default, shown in mobile view */
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(8, 8, 8, 0.95);
+    border: 2px solid var(--border-color);
+    padding: 6px;
+    width: 170px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+    z-index: 100;
+}
+.pad-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.pad-btn {
+    width: 48px;
+    height: 40px;
+    background-color: #111;
+    color: #fff;
+    border: 2px solid var(--border-color);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    outline: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.pad-btn:active {
+    background-color: #fff;
+    color: #000;
+}
+.pad-center {
+    width: 56px;
+    font-size: 10px;
+    font-weight: bold;
+}
+.pad-secondary {
+    background-color: #222;
+    border-style: dashed;
+}
+.pad-handle {
+    font-family: var(--font-heading);
+    font-size: 8px;
+    text-align: center;
+    color: var(--accent-color);
+    cursor: move;
+    border-top: 1px dashed #444;
+    padding-top: 4px;
+    margin-top: 4px;
+}
+
+/* HUD Upgrades display */
+.hud-upgrades-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    justify-content: center;
+}
+.hud-upgrade-badge {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+    background-color: #111;
+    border: 2px solid var(--border-color);
+    cursor: help;
+}
+
+/* Hold panel layout */
+.hold-panel {
+    margin-top: 10px;
+}
+.hold-piece-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #333;
+    background-color: #000;
+}
+
+/* Game Screens and Results stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+    font-family: var(--font-heading);
+    font-size: 12px;
+}
+
+/* Responsive vertical layout for mobile */
+@media (max-width: 768px) {
+    #game-container {
+        border: none;
+        padding: 5px;
+        max-height: 100vh;
+        max-width: 100vw;
+        height: 100vh;
+        width: 100vw;
+    }
+    
+    .game-layout {
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        width: 100%;
+        gap: 6px;
+    }
+    
+    /* Stats sidebar horizontally on top */
+    .stats-sidebar {
+        flex-direction: row;
+        width: 100%;
+        height: auto;
+        justify-content: space-between;
+        gap: 4px;
+        order: 1;
+    }
+    .stats-sidebar .panel {
+        flex: 1;
+        padding: 4px 6px;
+        margin: 0;
+        text-align: center;
+    }
+    .stats-sidebar h3 {
+        font-size: 9px;
+        margin-bottom: 2px;
+    }
+    .stats-sidebar .stat-value {
+        font-size: 14px;
+    }
+    
+    /* Canvas center takes most space */
+    .board-container {
+        order: 2;
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: calc(100% - 150px);
+    }
+    #board-canvas {
+        max-height: 100%;
+        max-width: 100%;
+        width: auto !important;
+        height: auto !important;
+        aspect-ratio: 1/2;
+    }
+    
+    /* Right sidebar preview and actions on bottom */
+    .info-sidebar {
+        order: 3;
+        flex-direction: row;
+        width: 100%;
+        height: 65px;
+        justify-content: space-around;
+        align-items: center;
+        gap: 6px;
+        padding: 0 5px;
+    }
+    .info-sidebar .panel {
+        margin: 0;
+        padding: 2px;
+        height: 100%;
+        flex: 1;
+    }
+    .info-sidebar h3 {
+        font-size: 9px;
+        margin-bottom: 1px;
+    }
+    .next-piece-display {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+        align-items: center;
+    }
+    .next-piece-display canvas {
+        width: 44px !important;
+        height: 44px !important;
+    }
+    .hold-piece-display canvas {
+        width: 44px !important;
+        height: 44px !important;
+    }
+    
+    .upgrades-panel {
+        display: none !important; /* Hide upgrades on small screen HUD to save space */
+    }
+    
+    .actions-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        height: 100%;
+        justify-content: center;
+    }
+    .actions-panel .btn-retro {
+        margin: 0;
+        padding: 6px 12px;
+        font-size: 10px;
+        box-shadow: 2px 2px 0 var(--fg-color);
+    }
+    
+    /* Show mobile control pad */
+    .mobile-pad {
+        display: block;
+    }
+    .mobile-controls {
+        display: none !important;
+    }
+}
