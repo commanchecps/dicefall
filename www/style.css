@@ -984,9 +984,51 @@ body::after {
         padding: 6vh 5vw !important;
     }
 
+    .logo-container {
+        display: grid !important;
+        grid-template-areas: 
+            "left-piece right-piece"
+            "title title" !important;
+        grid-template-columns: auto auto !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 8px 20px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .logo-left {
+        grid-area: left-piece !important;
+    }
+    
+    .logo-right {
+        grid-area: right-piece !important;
+    }
+    
+    .game-title {
+        grid-area: title !important;
+        font-size: clamp(32px, 8vw, 52px) !important;
+        border-bottom: 4px double var(--border-color) !important;
+        padding-bottom: 5px !important;
+        letter-spacing: 2px !important;
+        text-align: center !important;
+        margin: 0 !important;
+    }
+
+    .dicier-large {
+        font-size: clamp(40px, 9vw, 56px) !important;
+        letter-spacing: 4px !important;
+    }
+
+    .subtitle {
+        font-size: clamp(9px, 2.2vw, 14px) !important;
+        letter-spacing: 2px !important;
+        margin-bottom: 3vh !important;
+        text-align: center !important;
+    }
+
     .menu-actions {
         max-width: clamp(280px, 50vw, 600px) !important;
-        gap: 2vh !important;
+        gap: 1.5vh !important;
     }
 
     .credits {
