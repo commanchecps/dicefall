@@ -917,7 +917,51 @@ body::after {
 }
 
 /* Responsive vertical layout for mobile */
-@media (max-width: 768px) {
+/* Digit opacity highlighting for score */
+.digit-dim {
+    opacity: 0.25;
+}
+.digit-active {
+    opacity: 1;
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+/* Device Orientation Blocker */
+#orientation-blocker {
+    display: none;
+}
+
+@media screen and (pointer: coarse) and (orientation: landscape) {
+    #orientation-blocker {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        background-color: #080808;
+        color: #ffffff;
+        z-index: 10000;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 30px;
+        font-family: 'Silkscreen', sans-serif;
+    }
+    #orientation-blocker .blocker-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    #orientation-blocker p {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        color: #888;
+        margin: 5px 0;
+    }
+}
+
+@media (max-width: 1024px), (orientation: portrait), (max-aspect-ratio: 1/1) {
     #game-container {
         border: none;
         padding: 5px;
@@ -927,114 +971,352 @@ body::after {
         width: 100vw;
     }
     
-    .game-layout {
-        flex-direction: column;
-        justify-content: flex-start;
+    .screen {
+        overflow-y: auto !important;
+        max-height: 100% !important;
+        padding: 4vh 4vw !important;
+        justify-content: flex-start !important;
+        gap: 3vh !important;
+    }
+
+    #menu-screen {
+        padding: 6vh 5vw !important;
+    }
+
+    .menu-actions {
+        max-width: clamp(280px, 50vw, 600px) !important;
+        gap: 2vh !important;
+    }
+
+    .credits {
+        margin-top: auto !important;
+        padding-top: 20px !important;
+    }
+
+    /* Cards Selection Screen stacked vertically */
+    .cards-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+        width: 100% !important;
+        max-width: 450px !important;
+        margin-bottom: 2vh !important;
+    }
+
+    .upgrade-card {
+        flex: none !important;
+        width: 90% !important;
+        max-width: 340px !important;
+        padding: 10px 15px !important;
+        display: grid !important;
+        grid-template-areas: 
+            "icon tier"
+            "icon name"
+            "icon desc" !important;
+        grid-template-columns: 50px 1fr !important;
+        grid-template-rows: auto auto auto !important;
+        text-align: left !important;
+        align-items: center !important;
+        gap: 2px 10px !important;
+        box-shadow: 3px 3px 0 var(--fg-color) !important;
+    }
+
+    .upgrade-card .card-icon {
+        grid-area: icon !important;
+        font-size: 32px !important;
+        text-align: center !important;
+        margin: 0 !important;
+    }
+
+    .upgrade-card .card-tier-label {
+        grid-area: tier !important;
+        margin-bottom: 2px !important;
+        text-align: left !important;
+    }
+
+    .upgrade-card .card-name {
+        grid-area: name !important;
+        font-size: 14px !important;
+        margin-bottom: 2px !important;
+        text-align: left !important;
+    }
+
+    .upgrade-card .card-desc {
+        grid-area: desc !important;
+        font-size: 10px !important;
+        text-align: left !important;
+    }
+    
+    #game-screen {
+        position: relative !important;
+        width: 100%;
         height: 100%;
-        width: 100%;
-        gap: 6px;
+        overflow: hidden !important;
+        padding: 0 !important;
     }
     
-    /* Stats sidebar horizontally on top */
+    .game-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        height: 100% !important;
+        width: 100% !important;
+        gap: 6px !important;
+        padding: 10px 10px 22vh 10px !important;
+        overflow: hidden !important;
+    }
+    
+    /* Stats sidebar in 2x2 grid */
     .stats-sidebar {
-        flex-direction: row;
-        width: 100%;
-        height: auto;
-        justify-content: space-between;
-        gap: 4px;
-        order: 1;
-    }
-    .stats-sidebar .panel {
-        flex: 1;
-        padding: 4px 6px;
-        margin: 0;
-        text-align: center;
-    }
-    .stats-sidebar h3 {
-        font-size: 9px;
-        margin-bottom: 2px;
-    }
-    .stats-sidebar .stat-value {
-        font-size: 14px;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-rows: auto auto !important;
+        width: 100% !important;
+        height: auto !important;
+        gap: 6px !important;
+        order: 1 !important;
+        padding: 0 !important;
     }
     
-    /* Canvas center takes most space */
-    .board-container {
-        order: 2;
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        height: calc(100% - 150px);
+    .stats-sidebar .panel {
+        flex: unset !important;
+        padding: 8px 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #0d0d0d !important;
+        border: 2px solid var(--border-color) !important;
+        margin: 0 !important;
     }
-    #board-canvas {
-        max-height: 100%;
-        max-width: 100%;
-        width: auto !important;
+    
+    .stats-sidebar .panel-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin-bottom: 4px !important;
+        border-bottom: 1px dashed #333 !important;
+        padding-bottom: 2px !important;
+    }
+
+    .stats-sidebar h3 {
+        font-size: clamp(10px, 1.2vh, 20px) !important;
+        margin-bottom: 0 !important;
+        color: var(--accent-color) !important;
+    }
+
+    .stats-sidebar .stat-pct {
+        font-size: clamp(9px, 1.1vh, 18px) !important;
+        color: #fff !important;
+        font-weight: bold !important;
+    }
+    
+    .stats-sidebar .stat-value {
+        font-size: clamp(18px, 2.6vh, 40px) !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Active Upgrades HUD Badges in horizontal scrollable strip below stats */
+    .upgrades-panel {
+        display: flex !important;
+        order: 1.5 !important;
+        width: 100% !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        background-color: #0d0d0d !important;
+        border: 2px dashed var(--border-color) !important;
+        padding: 4px 10px !important;
+        margin: 2px 0 !important;
+        gap: 8px !important;
+        overflow-x: auto !important;
+    }
+
+    .upgrades-panel h3 {
+        font-size: clamp(9px, 1.1vh, 18px) !important;
+        margin-bottom: 0 !important;
+        white-space: nowrap !important;
+        color: var(--accent-color) !important;
+    }
+
+    .hud-upgrades-list {
+        display: flex !important;
+        flex-direction: row !important;
+        margin-top: 0 !important;
+        gap: 6px !important;
+    }
+
+    .hud-upgrade-badge {
+        width: clamp(22px, 3vh, 36px) !important;
+        height: clamp(22px, 3vh, 36px) !important;
+        font-size: clamp(11px, 1.6vh, 22px) !important;
+    }
+    
+    /* Canvas center takes most space, limited to prevent overlap */
+    .board-container {
+        order: 2 !important;
+        flex: 1 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
         height: auto !important;
-        aspect-ratio: 1/2;
+        margin: 2px 0 !important;
+    }
+    
+    #board-canvas {
+        height: 48vh !important;
+        width: auto !important;
+        max-height: 48vh !important;
+        max-width: 90vw !important;
+        aspect-ratio: 1/2 !important;
+        border: 2px solid var(--border-color) !important;
     }
     
     /* Right sidebar preview and actions on bottom */
     .info-sidebar {
-        order: 3;
-        flex-direction: row;
-        width: 100%;
-        height: 65px;
-        justify-content: space-around;
-        align-items: center;
-        gap: 6px;
-        padding: 0 5px;
-    }
-    .info-sidebar .panel {
-        margin: 0;
-        padding: 2px;
-        height: 100%;
-        flex: 1;
-    }
-    .info-sidebar h3 {
-        font-size: 9px;
-        margin-bottom: 1px;
-    }
-    .next-piece-display {
-        display: flex;
-        gap: 4px;
-        justify-content: center;
-        align-items: center;
-    }
-    .next-piece-display canvas {
-        width: 44px !important;
-        height: 44px !important;
-    }
-    .hold-piece-display canvas {
-        width: 44px !important;
-        height: 44px !important;
+        order: 3 !important;
+        flex-direction: row !important;
+        width: 100% !important;
+        height: auto !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 2px 10px !important;
     }
     
-    .upgrades-panel {
-        display: none !important; /* Hide upgrades on small screen HUD to save space */
+    .info-sidebar .panel {
+        margin: 0 !important;
+        padding: 6px !important;
+        height: auto !important;
+        flex: 1 !important;
+        max-width: clamp(100px, 28vw, 180px) !important;
+        background-color: #0d0d0d !important;
+        border: 2px solid var(--border-color) !important;
+    }
+    
+    .info-sidebar h3 {
+        font-size: clamp(9px, 1.1vh, 18px) !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .next-piece-display, .hold-piece-display {
+        display: flex !important;
+        gap: 4px !important;
+        justify-content: center !important;
+        align-items: center !important;
+        min-height: unset !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    
+    .next-piece-display canvas, .hold-piece-display canvas {
+        width: clamp(40px, 6vh, 80px) !important;
+        height: clamp(40px, 6vh, 80px) !important;
     }
     
     .actions-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        height: 100%;
-        justify-content: center;
-    }
-    .actions-panel .btn-retro {
-        margin: 0;
-        padding: 6px 12px;
-        font-size: 10px;
-        box-shadow: 2px 2px 0 var(--fg-color);
+        display: none !important;
     }
     
-    /* Show mobile control pad */
-    .mobile-pad {
-        display: block;
+    #btn-menu-back {
+        position: absolute !important;
+        top: 2vh !important;
+        right: 2vw !important;
+        margin: 0 !important;
+        padding: 6px 12px !important;
+        font-size: clamp(11px, 1.5vh, 22px) !important;
+        z-index: 110 !important;
+        box-shadow: 2px 2px 0 var(--fg-color) !important;
     }
+    
+    /* Glassmorphic semi-transparent mobile control pad */
+    .mobile-pad {
+        display: block !important;
+        position: fixed !important;
+        bottom: 2vh !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background-color: rgba(8, 8, 8, 0.7) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        border: 2px solid rgba(255, 255, 255, 0.8) !important;
+        padding: 8px !important;
+        width: clamp(200px, 50vw, 420px) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7) !important;
+        z-index: 120 !important;
+        opacity: 0.85 !important;
+        transition: opacity 0.2s ease, background-color 0.2s ease !important;
+        border-radius: 8px !important;
+    }
+    
+    .mobile-pad:hover, .mobile-pad:active {
+        opacity: 1.0 !important;
+        background-color: rgba(8, 8, 8, 0.9) !important;
+    }
+    
+    .pad-row {
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .pad-btn {
+        width: clamp(52px, 11vw, 100px) !important;
+        height: clamp(42px, 9vw, 80px) !important;
+        background-color: rgba(17, 17, 17, 0.8) !important;
+        border: 2px solid var(--border-color) !important;
+        font-size: clamp(18px, 3.5vw, 36px) !important;
+        box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.2) !important;
+        border-radius: 4px !important;
+    }
+    
+    .pad-btn:active {
+        background-color: #ffffff !important;
+        color: #080808 !important;
+        box-shadow: none !important;
+        transform: translate(2px, 2px) !important;
+    }
+    
+    .pad-center {
+        width: clamp(60px, 13vw, 120px) !important;
+        font-size: clamp(10px, 2vw, 20px) !important;
+        font-weight: bold !important;
+    }
+    
+    .pad-secondary {
+        background-color: rgba(34, 34, 34, 0.7) !important;
+        border-style: dashed !important;
+    }
+    
+    .pad-handle {
+        padding-top: 6px !important;
+        margin-top: 6px !important;
+        font-size: clamp(8px, 1.5vw, 16px) !important;
+    }
+    
     .mobile-controls {
         display: none !important;
+    }
+
+    /* Collection Grid responsiveness */
+    .collection-progress-container {
+        max-width: 90vw !important;
+        margin-bottom: 1.5vh !important;
+    }
+
+    .collection-grid {
+        height: 48vh !important;
+        margin-bottom: 2vh !important;
+        grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 28vw, 160px), 1fr)) !important;
+        gap: 10px !important;
+        padding: 10px !important;
+    }
+
+    .collection-card {
+        padding: 6px !important;
+        font-size: clamp(10px, 1.4vh, 20px) !important;
     }
 }

@@ -10,6 +10,16 @@
     <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
+    <!-- Device Orientation Blocker -->
+    <div id="orientation-blocker">
+        <div class="blocker-content">
+            <span class="dicier-large">6_6</span>
+            <h1 class="game-title">DICEFALL</h1>
+            <p>Por favor, utilize o celular na vertical (retrato).</p>
+            <p>Please use your device in Portrait mode.</p>
+        </div>
+    </div>
+
     <div id="game-container">
         <!-- MENU SCREEN -->
         <div id="menu-screen" class="screen active">
@@ -119,23 +129,32 @@
             <div class="game-layout">
                 <!-- Left Sidebar: Stats -->
                 <div class="sidebar stats-sidebar">
-                    <div class="panel">
-                        <h3 id="lbl-score">PONTUAÇÃO</h3>
+                    <div class="panel score-panel">
+                        <div class="panel-header">
+                            <h3 id="lbl-score">PONTUAÇÃO</h3>
+                        </div>
                         <div id="val-score" class="stat-value">000000</div>
                     </div>
-                    <div class="panel">
-                        <h3 id="lbl-target">META</h3>
+                    <div class="panel target-panel">
+                        <div class="panel-header">
+                            <h3 id="lbl-target">META</h3>
+                            <span id="val-target-pct" class="stat-pct">0%</span>
+                        </div>
                         <div id="val-target" class="stat-value">0</div>
                         <div class="progress-bar-container mini">
                             <div id="target-progress" class="progress-bar" style="width: 0%;"></div>
                         </div>
                     </div>
-                    <div class="panel">
-                        <h3 id="lbl-pieces">PEÇAS</h3>
+                    <div class="panel pieces-panel">
+                        <div class="panel-header">
+                            <h3 id="lbl-pieces">PEÇAS</h3>
+                        </div>
                         <div id="val-pieces" class="stat-value">0</div>
                     </div>
-                    <div class="panel">
-                        <h3 id="lbl-mult">MULT</h3>
+                    <div class="panel mult-panel">
+                        <div class="panel-header">
+                            <h3 id="lbl-mult">MULT</h3>
+                        </div>
                         <div id="val-mult" class="stat-value">1.0x</div>
                     </div>
                 </div>
@@ -188,6 +207,7 @@
                     <button id="pad-right" class="pad-btn">▶</button>
                 </div>
                 <div class="pad-row">
+                    <button id="pad-hold" class="pad-btn pad-secondary" style="display: none;">H</button>
                     <button id="pad-down" class="pad-btn">▼</button>
                     <button id="pad-recycle" class="pad-btn pad-secondary" style="display: none;">♻️</button>
                 </div>

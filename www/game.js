@@ -155,10 +155,10 @@ const LANG = {
         howToPlay: 'COMO JOGAR',
         settings: 'CONFIGURAÇÕES',
         language: 'IDIOMA',
-        score: 'PONTUAÇÃO',
-        target: 'META',
-        pieces: 'PEÇAS',
-        mult: 'MULT',
+        score: '🏆 PONTOS',
+        target: '🎯 META',
+        pieces: '🎲 PEÇAS',
+        mult: '⚡ MULTIPLICADOR',
         chips: 'CHIPS',
         shuffle1: '1º EMBARALHAMENTO',
         shuffle2: '2º EMBARALHAMENTO',
@@ -192,10 +192,10 @@ const LANG = {
         howToPlay: 'HOW TO PLAY',
         settings: 'SETTINGS',
         language: 'LANGUAGE',
-        score: 'SCORE',
-        target: 'TARGET',
-        pieces: 'PIECES',
-        mult: 'MULT',
+        score: '🏆 SCORE',
+        target: '🎯 TARGET',
+        pieces: '🎲 PIECES',
+        mult: '⚡ MULTIPLIER',
         chips: 'CHIPS',
         shuffle1: '1ST SHUFFLE',
         shuffle2: '2ND SHUFFLE',
@@ -914,7 +914,9 @@ function initMobileControls() {
     handleTouch('pad-right', () => movePiece(1));
     handleTouch('pad-rot-right', () => rotatePiece());
     handleTouch('pad-rot-left', () => rotatePieceReverse());
-    handleTouch('pad-up', () => movePieceDown());
+    handleTouch('pad-up', () => rotatePiece()); // Up arrow rotates (Standard D-Pad mapping)
+    handleTouch('pad-down', () => movePieceDown()); // Down arrow soft drops (Standard D-Pad mapping)
+    handleTouch('pad-hold', () => holdPieceAction()); // Hold button triggers hold action
     handleTouch('pad-drop', () => hardDrop());
     handleTouch('pad-recycle', () => recycleAction());
 
@@ -922,15 +924,14 @@ function initMobileControls() {
     document.addEventListener('pointerdown', (e) => {
         if (activeScreen !== 'game' || isPaused || isGameOver || isClearingAnimation) return;
         
+        const canvas = document.getElementById('board-canvas');
         const pad = document.getElementById('mobile-pad');
-        const sidebarLeft = document.querySelector('.stats-sidebar');
-        const sidebarRight = document.querySelector('.info-sidebar');
-        const howToModal = document.getElementById('how-to-modal');
+        const btnBack = document.getElementById('btn-menu-back');
         
+        // Return if tapping canvas, mobile controls pad, or back button
+        if (canvas && canvas.contains(e.target)) return;
         if (pad && pad.contains(e.target)) return;
-        if (sidebarLeft && sidebarLeft.contains(e.target)) return;
-        if (sidebarRight && sidebarRight.contains(e.target)) return;
-        if (howToModal && howToModal.contains(e.target)) return;
+        if (btnBack && btnBack.contains(e.target)) return;
         if (e.target.tagName === 'BUTTON') return;
         
         hardDrop();
@@ -1098,16 +1099,33 @@ function padZero(num, size) {
 }
 
 // Update Game Interface (HUD)
+function formatScoreHTML(score) {
+    const str = padZero(score, 6);
+    let firstNonZeroIndex = str.indexOf(str.split('').find(c => c !== '0'));
+    if (firstNonZeroIndex === -1) {
+        return `<span class="digit-dim">${str.substring(0, 5)}</span><span class="digit-active">0</span>`;
+    } else if (firstNonZeroIndex === 0) {
+        return `<span class="digit-active">${str}</span>`;
+    } else {
+        return `<span class="digit-dim">${str.substring(0, firstNonZeroIndex)}</span><span class="digit-active">${str.substring(firstNonZeroIndex)}</span>`;
+    }
+}
+
 function updateHUD() {
-    document.getElementById('val-score').innerText = padZero(shuffleScore, 6);
+    document.getElementById('val-score').innerHTML = formatScoreHTML(shuffleScore);
     document.getElementById('val-target').innerText = SHUFFLES[currentShuffle].target;
-    document.getElementById('val-pieces').innerText = piecesRemaining;
+    
+    const totalPieces = SHUFFLES[currentShuffle].pieces + (runState.bonusPieces || 0);
+    document.getElementById('val-pieces').innerText = `${piecesRemaining} / ${totalPieces}`;
     
     const totalMult = (1 + runState.addMult) * runState.multMult;
     document.getElementById('val-mult').innerText = totalMult.toFixed(1) + 'x';
     
-    // Target progress bar
+    // Target progress bar and percentage text
     const progress = Math.min(100, (shuffleScore / SHUFFLES[currentShuffle].target) * 100);
+    const pctValue = Math.floor((shuffleScore / SHUFFLES[currentShuffle].target) * 100);
+    const pctElement = document.getElementById('val-target-pct');
+    if (pctElement) pctElement.innerText = `${pctValue}%`;
     document.getElementById('target-progress').style.width = `${progress}%`;
     
     // Active Upgrades HUD Badges
@@ -1147,13 +1165,16 @@ function updateRecycleButton() {
 
 function updateHoldUI() {
     const panel = document.getElementById('hold-panel');
+    const padHold = document.getElementById('pad-hold');
     if (!panel) return;
     
     if (runState.holdEnabled) {
         panel.style.display = 'block';
+        if (padHold) padHold.style.display = 'flex';
         drawHeldPiece();
     } else {
         panel.style.display = 'none';
+        if (padHold) padHold.style.display = 'none';
     }
 }
 
